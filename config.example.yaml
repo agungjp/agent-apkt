@@ -1,0 +1,16 @@
+apkt:
+  login_url: "https://new-apkt.pln.co.id/login"
+  iam_login_url: "https://iam.pln.co.id/auth/login?grant=20784d91-8979-4997-970c-18d169cc2c89"
+  iam_totp_url_prefix: "https://iam.pln.co.id/auth/mfa/20784d91-8979-4997-970c-18d169cc2c89/totp"
+
+datasets:
+  se004_kumulatif:
+    url: "https://new-apktss.pln.co.id/home/laporan-saidi-saifi-kumulatif-se004"
+    unit_text_default: "11 - WILAYAH ACEH"
+    period_default: "202512"
+
+workspace:
+  root: "./workspace"
+
+runtime:
+  headless: false
