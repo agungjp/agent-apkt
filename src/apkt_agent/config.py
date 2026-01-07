@@ -29,6 +29,7 @@ class Config:
         """
         self.data = config_dict
         self._validate()
+        self._validate_google_sheets()
 
     def _validate(self) -> None:
         """Validate configuration has all required keys.
@@ -46,6 +47,32 @@ class Config:
                         raise ConfigError(
                             f"Missing required config key: {top_key}.{sub_key}"
                         )
+
+    def _validate_google_sheets(self) -> None:
+        """Validate Google Sheets configuration if enabled.
+        
+        Raises:
+            ConfigError: If google_sheets is enabled but required keys are missing
+        """
+        gs_config = self.data.get('google_sheets', {})
+        
+        if not gs_config.get('enabled', False):
+            return
+        
+        required_keys = ['spreadsheet_id', 'worksheet_name', 'credentials_json_path']
+        for key in required_keys:
+            if not gs_config.get(key):
+                raise ConfigError(
+                    f"google_sheets.enabled=true but missing required key: google_sheets.{key}"
+                )
+        
+        # Validate credentials file exists
+        creds_path = Path(gs_config['credentials_json_path'])
+        if not creds_path.exists():
+            raise ConfigError(
+                f"Google Sheets credentials file not found: {creds_path}\n"
+                f"Please ensure the Service Account JSON file exists at the specified path."
+            )
 
     def get(self, key_path: str, default: Any = None) -> Any:
         """Get configuration value using dot notation.

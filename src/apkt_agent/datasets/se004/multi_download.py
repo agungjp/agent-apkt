@@ -207,6 +207,41 @@ def run_multi_unit_download(
             print(f"\n✓ Parsed {len(combined_df)} rows from {len(excel_files)} files")
             print(f"✓ CSV saved: {csv_filename}")
             
+            # === GOOGLE SHEETS UPLOAD ===
+            gs_config = config.data.get('google_sheets', {})
+            sheet_upload_result = None
+            
+            if gs_config.get('enabled', False):
+                print("\n" + "-" * 60)
+                print("UPLOADING TO GOOGLE SHEETS")
+                print("-" * 60)
+                
+                try:
+                    from ...sinks.sheets import upload_csv_to_worksheet
+                    
+                    sheet_upload_result = upload_csv_to_worksheet(
+                        csv_path=csv_path,
+                        spreadsheet_id=gs_config['spreadsheet_id'],
+                        worksheet_name=gs_config.get('worksheet_name', 'se004_kumulatif'),
+                        credentials_json_path=gs_config['credentials_json_path'],
+                        mode=gs_config.get('mode', 'replace'),
+                    )
+                    
+                    print(f"✓ Uploaded to Google Sheets: {sheet_upload_result['worksheet_name']}")
+                    print(f"  Rows: {sheet_upload_result['row_count']}, Cols: {sheet_upload_result['col_count']}")
+                    
+                    results["sheet_uploaded"] = True
+                    results["sheet_worksheet"] = sheet_upload_result['worksheet_name']
+                    results["sheet_row_count"] = sheet_upload_result['row_count']
+                    
+                except Exception as e:
+                    logger.warning(f"Google Sheets upload failed: {e}")
+                    print(f"⚠ Upload failed: {e}")
+                    print("  (See logs for details)")
+                    
+                    results["sheet_uploaded"] = False
+                    results["sheet_error"] = str(e)
+            
             # Save manifest
             manifest = {
                 "run_id": ctx.run_id,
@@ -218,6 +253,16 @@ def run_multi_unit_download(
                 "files_parsed": len(excel_files),
                 "validation": validation.to_dict(),
             }
+            
+            # Add Google Sheets info to manifest
+            if gs_config.get('enabled', False):
+                manifest["google_sheets"] = {
+                    "enabled": True,
+                    "uploaded": results.get("sheet_uploaded", False),
+                    "worksheet_name": results.get("sheet_worksheet"),
+                    "row_count": results.get("sheet_row_count"),
+                    "error": results.get("sheet_error"),
+                }
             
             manifest_path = ctx.run_dir / "manifest.json"
             with open(manifest_path, "w", encoding="utf-8") as f:

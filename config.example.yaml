@@ -14,3 +14,10 @@ workspace:
 
 runtime:
   headless: false
+
+google_sheets:
+  enabled: true
+  spreadsheet_id: "YOUR_SPREADSHEET_ID"
+  worksheet_name: "se004_kumulatif"
+  credentials_json_path: "./src/apkt_agent/secrets/your-service-account.json"
+  mode: "append"

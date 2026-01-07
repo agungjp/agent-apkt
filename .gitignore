@@ -132,7 +132,10 @@ dmypy.json
 
 # Project specific
 workspace/
+secrets/
 config.yaml
 credentials.yaml
 *.xlsx
 *.csv
+*-service-account.json
+apkt-agent-*.json

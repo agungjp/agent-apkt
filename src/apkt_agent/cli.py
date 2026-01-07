@@ -276,6 +276,19 @@ def run_se004_kumulatif(config: Config) -> None:
             print(f"  Total baris     : {results['rows_parsed']:,}")
             print(f"  File CSV        : {Path(results.get('parsed_csv_path', '')).name}")
         
+        # Google Sheets upload status
+        if results.get('sheet_uploaded') is not None:
+            print(f"\n  📤 GOOGLE SHEETS")
+            print(f"  " + "-" * 40)
+            if results.get('sheet_uploaded'):
+                print(f"  Status          : ✓ Berhasil diupload")
+                print(f"  Worksheet       : {results.get('sheet_worksheet', '-')}")
+                print(f"  Baris diupload  : {results.get('sheet_row_count', 0):,}")
+            else:
+                print(f"  Status          : ✗ Gagal")
+                print(f"  Error           : {results.get('sheet_error', 'Unknown')[:50]}")
+                print(f"  (Lihat manifest.json untuk detail)")
+        
         if results.get('validation_warnings'):
             print(f"\n  ⚠ PERINGATAN VALIDASI: {len(results['validation_warnings'])}")
             for w in results['validation_warnings'][:3]:
