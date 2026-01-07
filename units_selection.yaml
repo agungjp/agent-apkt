@@ -25,7 +25,7 @@ selected_units:
   - value: "180"
     text: "18 - WILAYAH RIAU DAN KEPULAUAN RIAU"
     code: "WIL_RIAUKEPRI"
-
+  
   - value: "210"
     text: "21 - WILAYAH KALIMANTAN BARAT"
     code: "WIL_KALBAR"
@@ -37,14 +37,6 @@ selected_units:
   - value: "230"
     text: "23 - WILAYAH KALIMANTAN TIMUR"
     code: "WIL_KALTIM"
-
-  - value: "6666"
-    text: "REGIONAL SUMKAL"
-    code: "REG_SUMKAL"
-
-  - value: "9999"
-    text: "PT PLN (PERSERO)"
-    code: "PLN_PERSERO"
 # Period format: YYYYMM
 # Examples:
 #   - 202512 = Desember 2025

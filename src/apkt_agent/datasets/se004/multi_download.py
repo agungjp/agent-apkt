@@ -11,7 +11,7 @@ from ...browser.driver import open_browser, close_browser
 from ...workspace import RunContext
 from ...config import Config
 from ...logging_ import get_logger
-from .parser import list_excel_files, parse_all_excel_files
+from .parser import list_excel_files, parse_all_excel_files, save_csv_indonesian_format
 from ...transform.validate import validate_se004_kumulatif
 
 
@@ -198,8 +198,8 @@ def run_multi_unit_download(
             csv_filename = f"se004_kumulatif_{period_ym}_{run_id_short}.csv"
             csv_path = ctx.parsed_dir / csv_filename
             
-            # Save to CSV
-            combined_df.to_csv(csv_path, index=False, encoding="utf-8")
+            # Save to CSV with Indonesian format (semicolon delimiter, . ribuan, , desimal)
+            save_csv_indonesian_format(combined_df, csv_path)
             
             results["parsed_csv_path"] = str(csv_path)
             results["rows_parsed"] = len(combined_df)

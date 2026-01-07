@@ -11,9 +11,10 @@ SE004_KUMULATIF_COLUMNS: List[str] = [
     "period_ym",
     "period_label",
     "jumlah_pelanggan",
-    "saidi_total",
+    "saidi_total",           # Jam/Plg
+    "saidi_total_menit",     # Menit/Plg
     "saifi_total",
-    "tanggal_cetak",
+    "tanggal_cetak",         # Format: dd/mm/yyyy
     
     # Table data columns
     "kode",
@@ -114,6 +115,99 @@ def parse_period_label_to_ym(period_label: str) -> Optional[str]:
                 return f"{year}{month_num}"
     
     return None
+
+
+def format_indonesian_number(value: Optional[float], decimals: int = 4) -> str:
+    """Format float to Indonesian number format for CSV output.
+    
+    Indonesian format uses:
+    - Dot (.) as thousand separator
+    - Comma (,) as decimal separator
+    
+    Examples:
+        95874596.0 -> "95.874.596"
+        8.4367 -> "8,4367"
+        1234.56 -> "1.234,56"
+    
+    Args:
+        value: Float value to format
+        decimals: Number of decimal places
+        
+    Returns:
+        String in Indonesian format, or empty string if None
+    """
+    if value is None:
+        return ""
+    
+    # Round to specified decimals
+    rounded = round(value, decimals)
+    
+    # Split integer and decimal parts
+    if decimals > 0:
+        # Format with decimals
+        int_part = int(abs(rounded))
+        dec_part = abs(rounded) - int_part
+        
+        # Format integer part with thousand separators
+        int_str = f"{int_part:,}".replace(",", ".")
+        
+        # Format decimal part
+        dec_str = f"{dec_part:.{decimals}f}"[2:]  # Remove "0."
+        
+        # Remove trailing zeros in decimal
+        dec_str = dec_str.rstrip("0") or "0"
+        
+        result = f"{int_str},{dec_str}"
+    else:
+        # No decimals, just format integer
+        result = f"{int(rounded):,}".replace(",", ".")
+    
+    # Add negative sign if needed
+    if rounded < 0:
+        result = f"-{result}"
+    
+    return result
+
+
+def parse_tanggal_to_ddmmyyyy(text: str) -> Optional[str]:
+    """Parse various date formats to dd/mm/yyyy.
+    
+    Handles formats like:
+    - "Selasa, 06 Januari 2026"
+    - "06 Januari 2026"
+    - "2026-01-06"
+    
+    Args:
+        text: Date text in various formats
+        
+    Returns:
+        Date in dd/mm/yyyy format or None
+    """
+    if not text:
+        return None
+    
+    text = text.strip()
+    
+    # Try Indonesian format: "Selasa, 06 Januari 2026" or "06 Januari 2026"
+    match = re.search(
+        r'(\d{1,2})\s+(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})',
+        text,
+        re.IGNORECASE
+    )
+    if match:
+        day = match.group(1).zfill(2)
+        month_name = match.group(2).lower()
+        year = match.group(3)
+        month = BULAN_INDONESIA.get(month_name, "01")
+        return f"{day}/{month}/{year}"
+    
+    # Try ISO format: "2026-01-06"
+    iso_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', text)
+    if iso_match:
+        year, month, day = iso_match.groups()
+        return f"{day}/{month}/{year}"
+    
+    return text  # Return original if can't parse
 
 
 # Legacy dataclasses for backward compatibility

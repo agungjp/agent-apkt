@@ -11,6 +11,8 @@ from .schema import (
     SE004_KUMULATIF_COLUMNS,
     parse_indonesian_number,
     parse_period_label_to_ym,
+    format_indonesian_number,
+    parse_tanggal_to_ddmmyyyy,
 )
 from ...logging_ import get_logger
 
@@ -177,53 +179,74 @@ def parse_se004_kumulatif_xlsx(file_path: Path) -> pd.DataFrame:
     # 3. period_ym: Convert from period_label
     metadata["period_ym"] = parse_period_label_to_ym(metadata["period_label"])
     
-    # 4. jumlah_pelanggan: Find "Jumlah Pelanggan" then get adjacent cell
+    # 4. jumlah_pelanggan: Find "Jumlah Pelanggan" then get value from next cell (C2)
     jml_plg_cell = _find_cell_by_text(ws, "Jumlah Pelanggan")
     if jml_plg_cell:
-        # Value is usually in next column or after colon
         row, col, text = jml_plg_cell
-        if ":" in text:
-            val_text = _extract_after_colon(text)
-            metadata["jumlah_pelanggan"] = parse_indonesian_number(val_text)
+        # Value is in the NEXT column (C2)
+        next_val = _get_cell_value(ws, row, col + 1)
+        if next_val:
+            # Parse as string to handle Indonesian format
+            val_str = str(next_val).strip()
+            metadata["jumlah_pelanggan"] = parse_indonesian_number(val_str)
         else:
-            # Try next column
-            next_val = _get_cell_value(ws, row, col + 1)
-            metadata["jumlah_pelanggan"] = _parse_numeric_value(next_val)
+            # Fallback: check if value is after colon
+            if ":" in text:
+                val_text = _extract_after_colon(text)
+                metadata["jumlah_pelanggan"] = parse_indonesian_number(val_text)
+            else:
+                metadata["jumlah_pelanggan"] = None
     else:
         metadata["jumlah_pelanggan"] = None
     
-    # 5. saidi_total: Find "SAIDI :" pattern at end of data
-    saidi_cell = _find_cell_by_text(ws, r"^SAIDI\s*:", regex=True)
+    # 5. saidi_total: Find "SAIDI :" pattern (with colon) - value in C2 (Jam/Plg), C4 (Menit/Plg)
+    # Use more specific search to avoid matching "LAPORAN SAIDI SAIFI"
+    saidi_cell = _find_cell_by_text(ws, "SAIDI :")
+    if not saidi_cell:
+        saidi_cell = _find_cell_by_text(ws, "SAIDI:")
     if saidi_cell:
         row, col, text = saidi_cell
-        if ":" in text:
-            val_text = _extract_after_colon(text)
-            metadata["saidi_total"] = parse_indonesian_number(val_text)
+        # Jam/Plg is in next column (usually C2)
+        jam_val = _get_cell_value(ws, row, col + 1)
+        if jam_val:
+            val_str = str(jam_val).strip()
+            metadata["saidi_total"] = parse_indonesian_number(val_str)
         else:
-            next_val = _get_cell_value(ws, row, col + 1)
-            metadata["saidi_total"] = _parse_numeric_value(next_val)
+            metadata["saidi_total"] = None
+        # Menit/Plg is usually in C4 (col + 3)
+        menit_val = _get_cell_value(ws, row, col + 3)
+        if menit_val:
+            val_str = str(menit_val).strip()
+            metadata["saidi_total_menit"] = parse_indonesian_number(val_str)
+        else:
+            metadata["saidi_total_menit"] = None
     else:
         metadata["saidi_total"] = None
+        metadata["saidi_total_menit"] = None
     
-    # 6. saifi_total: Find "SAIFI :" pattern
-    saifi_cell = _find_cell_by_text(ws, r"^SAIFI\s*:", regex=True)
+    # 6. saifi_total: Find "SAIFI :" pattern (with colon) - value in C2 (Kali/Plg)
+    saifi_cell = _find_cell_by_text(ws, "SAIFI :")
+    if not saifi_cell:
+        saifi_cell = _find_cell_by_text(ws, "SAIFI:")
     if saifi_cell:
         row, col, text = saifi_cell
-        if ":" in text:
-            val_text = _extract_after_colon(text)
-            metadata["saifi_total"] = parse_indonesian_number(val_text)
+        # Value is in next column (C2)
+        next_val = _get_cell_value(ws, row, col + 1)
+        if next_val:
+            val_str = str(next_val).strip()
+            metadata["saifi_total"] = parse_indonesian_number(val_str)
         else:
-            next_val = _get_cell_value(ws, row, col + 1)
-            metadata["saifi_total"] = _parse_numeric_value(next_val)
+            metadata["saifi_total"] = None
     else:
         metadata["saifi_total"] = None
     
-    # 7. tanggal_cetak: Find "Tanggal Penarikan" or "Tanggal Cetak"
+    # 7. tanggal_cetak: Find "Tanggal Penarikan" or "Tanggal Cetak", format to dd/mm/yyyy
     tgl_cell = _find_cell_by_text(ws, "Tanggal Penarikan")
     if not tgl_cell:
         tgl_cell = _find_cell_by_text(ws, "Tanggal Cetak")
     if tgl_cell:
-        metadata["tanggal_cetak"] = _extract_after_colon(tgl_cell[2])
+        raw_date = _extract_after_colon(tgl_cell[2])
+        metadata["tanggal_cetak"] = parse_tanggal_to_ddmmyyyy(raw_date)
     else:
         metadata["tanggal_cetak"] = None
     
@@ -426,6 +449,57 @@ def parse_all_excel_files(raw_excel_dir: Path) -> pd.DataFrame:
     logger.info(f"Combined DataFrame: {len(combined_df)} total rows from {len(dfs)} files")
     
     return combined_df
+
+
+def save_csv_indonesian_format(df: pd.DataFrame, output_path: Path) -> Path:
+    """Save DataFrame to CSV with Indonesian number format.
+    
+    Uses semicolon (;) as delimiter because comma is used as decimal separator.
+    Numbers are formatted with dot (.) for thousands, comma (,) for decimals.
+    
+    Args:
+        df: DataFrame to save
+        output_path: Path to save CSV file
+        
+    Returns:
+        Path to saved CSV file
+    """
+    logger = get_logger()
+    
+    # Define numeric columns that need formatting
+    numeric_columns = [
+        "jumlah_pelanggan",
+        "saidi_total",
+        "saidi_total_menit",
+        "saifi_total",
+        "jml_plg_padam",
+        "jam_x_jml_plg_padam",
+        "saidi_jam",
+        "saifi_kali",
+        "jumlah_gangguan_kali",
+        "lama_padam_jam",
+        "kwh_tak_tersalurkan",
+    ]
+    
+    # Create a copy to avoid modifying original
+    df_out = df.copy()
+    
+    # Format numeric columns to Indonesian format
+    for col in numeric_columns:
+        if col in df_out.columns:
+            df_out[col] = df_out[col].apply(
+                lambda x: format_indonesian_number(x, decimals=4) if pd.notna(x) else ""
+            )
+    
+    # Ensure output directory exists
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save with semicolon delimiter (because comma is decimal separator)
+    df_out.to_csv(output_path, index=False, sep=";", encoding="utf-8-sig")
+    
+    logger.info(f"Saved CSV with Indonesian format to: {output_path}")
+    
+    return output_path
 
 
 # Legacy class for backward compatibility

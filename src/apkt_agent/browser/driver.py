@@ -33,11 +33,21 @@ def open_browser(ctx: RunContext, config: Config) -> Tuple[Playwright, Browser, 
         logger.info(f"Opening browser (headless={headless})")
         logger.info(f"Download directory: {download_dir}")
         
-        # Start Playwright
+        # Start Playwright with timeout
+        import time
+        start_time = time.time()
         playwright = sync_playwright().start()
+        elapsed = time.time() - start_time
+        logger.info(f"Playwright started in {elapsed:.2f}s")
         
-        # Launch Chromium browser
-        browser = playwright.chromium.launch(headless=headless)
+        # Launch Chromium browser with timeout and args
+        logger.info("Launching Chromium...")
+        browser = playwright.chromium.launch(
+            headless=headless,
+            args=['--no-sandbox', '--disable-setuid-sandbox'],
+            timeout=60000
+        )
+        logger.info("Chromium launched")
         
         # Create context with download settings
         context = browser.new_context(
@@ -49,13 +59,14 @@ def open_browser(ctx: RunContext, config: Config) -> Tuple[Playwright, Browser, 
         
         # Create page
         page = context.new_page()
+        logger.info("Page created")
         
         logger.info("Browser opened successfully")
         
         return playwright, browser, context, page
         
     except Exception as e:
-        logger.error(f"Failed to open browser: {e}")
+        logger.error(f"Failed to open browser: {e}", exc_info=True)
         raise BrowserError(f"Failed to open browser: {e}")
 
 

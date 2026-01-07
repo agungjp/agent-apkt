@@ -2,28 +2,28 @@
 
 import sys
 from datetime import datetime
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import Tuple
 
 import requests
 
 from .config import Config, load_config
 from .logging_ import setup_logger, get_logger
-from .workspace import RunContext, create_run
-from .datasets.registry import DatasetRegistry
-from .datasets.se004.extract_filters import extract_se004_filters, print_filters, save_filters_to_json
+from .workspace import create_run
 from .datasets.se004.multi_download import load_units_selection, run_multi_unit_download
 
 
+# Indonesian month names
+BULAN_INDONESIA = {
+    "01": "Januari", "02": "Februari", "03": "Maret",
+    "04": "April", "05": "Mei", "06": "Juni",
+    "07": "Juli", "08": "Agustus", "09": "September",
+    "10": "Oktober", "11": "November", "12": "Desember",
+}
+
+
 def check_url(url: str, timeout: int = 10) -> Tuple[bool, str]:
-    """Check connectivity to a URL.
-    
-    Args:
-        url: URL to check
-        timeout: Timeout in seconds (default: 10)
-        
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
+    """Check connectivity to a URL."""
     try:
         response = requests.head(url, timeout=timeout, allow_redirects=True)
         return True, f"OK (HTTP {response.status_code})"
@@ -36,18 +36,11 @@ def check_url(url: str, timeout: int = 10) -> Tuple[bool, str]:
 
 
 def check_connectivity(config: Config) -> bool:
-    """Check connectivity to APKT services.
-    
-    Args:
-        config: Configuration object
-        
-    Returns:
-        True if should continue, False if should exit
-    """
+    """Check connectivity to APKT services."""
     logger = get_logger()
     
     print("\n" + "-" * 60)
-    print("Checking connectivity...")
+    print("Memeriksa koneksi...")
     print("-" * 60)
     
     login_url = config.get('apkt.login_url')
@@ -67,370 +60,275 @@ def check_connectivity(config: Config) -> bool:
         print(f"✗ {message}")
         logger.warning(f"Connectivity check failed: {login_url} - {message}")
         
-        print("\n⚠ Network connectivity issue detected!")
-        print("  You may experience problems during automation.")
+        print("\n⚠ Koneksi bermasalah!")
         
         while True:
-            choice = input("\nContinue anyway? (y/n): ").strip().lower()
+            choice = input("\nLanjutkan? (y/n): ").strip().lower()
             if choice == 'y':
-                logger.info("User chose to continue despite connectivity issue")
                 return True
             elif choice == 'n':
-                logger.info("User chose to exit due to connectivity issue")
                 return False
             else:
-                print("Please enter 'y' or 'n'")
+                print("Masukkan 'y' atau 'n'")
+
+
+def print_header() -> None:
+    """Print CLI header."""
+    print("\n" + "=" * 60)
+    print("APKT Agent - Data Extraction Tool")
+    print("=" * 60)
 
 
 def print_menu() -> None:
     """Print main CLI menu."""
-    print("\n" + "=" * 60)
-    print("APKT Agent - Data Extraction Tool")
-    print("=" * 60)
-    print("\n1. Run extraction (SE004 Rolling) [stub]")
-    print("2. Run extraction (SE004 Kumulatif) - Single Unit")
-    print("3. Run extraction (SE004 Kumulatif) - Multi Unit")
-    print("4. Run extraction (SE004 Gangguan) [stub]")
-    print("5. Extract filter options (SE004 Kumulatif)")
-    print("6. View latest run")
-    print("7. Settings")
-    print("8. Exit")
+    print("\n" + "-" * 60)
+    print("MENU UTAMA")
+    print("-" * 60)
+    print("\n  1. Laporan SAIDI SAIFI SE004 [stub]")
+    print("  2. Laporan SAIDI SAIFI Kumulatif SE004")
+    print("  3. Laporan Detail Kode Gangguan SE004 [stub]")
+    print("\n  0. Keluar")
     print("\n" + "-" * 60)
 
 
-def handle_menu_choice(choice: str, config: Config) -> bool:
-    """Handle menu choice.
+def get_period_input() -> str | None:
+    """Get period input from user.
     
-    Args:
-        choice: User choice
-        config: Configuration object
-        
     Returns:
-        False if exit, True otherwise
+        Period in YYYYMM format, or None if cancelled
     """
-    logger = get_logger()
+    print("\n" + "-" * 60)
+    print("FORMAT PERIODE: YYYYMM")
+    print("-" * 60)
+    print("  YYYY = Tahun (4 digit)")
+    print("  MM   = Bulan (01-12)")
+    print("")
+    print("  Contoh:")
+    print("    202512 = Desember 2025")
+    print("    202501 = Januari 2025")
+    print("-" * 60)
     
-    if choice == "1":
-        logger.info("Selected: SE004 Rolling")
-        run_extraction("se004_rolling", config)
-        return True
+    default_period = datetime.now().strftime('%Y%m')
+    period_input = input(f"\nMasukkan periode (default: {default_period}): ").strip()
     
-    elif choice == "2":
-        logger.info("Selected: SE004 Kumulatif - Single Unit")
-        run_extraction_with_prompt("se004_kumulatif", config)
-        return True
-    
-    elif choice == "3":
-        logger.info("Selected: SE004 Kumulatif - Multi Unit")
-        run_multi_unit_extraction(config)
-        return True
-    
-    elif choice == "4":
-        logger.info("Selected: SE004 Gangguan")
-        run_extraction("se004_gangguan", config)
-        return True
-    
-    elif choice == "5":
-        logger.info("Selected: Extract filter options")
-        run_extract_filters(config)
-        return True
-    
-    elif choice == "6":
-        logger.info("Selected: View latest run")
-        # TODO: Implement latest run viewer
-        return True
-    
-    elif choice == "7":
-        logger.info("Selected: Settings")
-        # TODO: Implement settings menu
-        return True
-    
-    elif choice == "8":
-        logger.info("Exiting application")
-        return False
-    
-    else:
-        print("Invalid choice. Please try again.")
-        return True
-
-
-def run_extraction_with_prompt(dataset: str, config: Config) -> None:
-    """Run extraction with period input prompt.
-    
-    Args:
-        dataset: Dataset name
-        config: Configuration object
-    """
-    logger = get_logger()
-    
-    # Get default period from config
-    default_period = config.get(f'datasets.{dataset}.period_default')
-    if not default_period:
-        default_period = datetime.now().strftime('%Y%m')
-    
-    # Prompt for period
-    print(f"\nDefault period: {default_period}")
-    period_input = input(f"Enter period (YYYYMM) or press Enter for default: ").strip()
-    
-    if period_input:
-        period_ym = period_input
-    else:
-        period_ym = default_period
+    if not period_input:
+        period_input = default_period
     
     # Validate format
-    if not (len(period_ym) == 6 and period_ym.isdigit()):
-        print(f"✗ Invalid period format: {period_ym}. Expected YYYYMM.")
-        return
+    if not (len(period_input) == 6 and period_input.isdigit()):
+        print(f"\n✗ Format periode tidak valid: {period_input}")
+        return None
     
-    logger.info(f"Using period: {period_ym}")
+    # Validate month
+    month = period_input[4:6]
+    if not (1 <= int(month) <= 12):
+        print(f"\n✗ Bulan tidak valid: {month}")
+        return None
     
-    # Snapshot date is today
-    snapshot_date = datetime.now().strftime('%Y%m%d')
-    
-    try:
-        # Create run context
-        ctx = create_run(dataset, period_ym, snapshot_date, config)
-        
-        # Re-setup logger with file handler
-        logger = setup_logger(ctx=ctx)
-        
-        logger.info(f"Created run: {ctx.run_id}")
-        logger.info(f"Run directory: {ctx.run_dir}")
-        
-        # Get handler from registry and run
-        handler = DatasetRegistry.get_handler(dataset, config)
-        result = handler.run(ctx)
-        
-        # Display result summary
-        print("\n" + "-" * 60)
-        print("Run Summary")
-        print("-" * 60)
-        
-        if result.success:
-            print(f"  Status: ✓ {result.message}")
-        else:
-            print(f"  Status: ✗ {result.message}")
-        
-        print(f"  Run ID: {ctx.run_id}")
-        print(f"  Directory: {ctx.run_dir}")
-        print(f"  Files downloaded: {len(result.files_downloaded)}")
-        if result.files_downloaded:
-            for f in result.files_downloaded:
-                print(f"    - {f}")
-        print(f"  Rows parsed: {result.rows_parsed}")
-        
-    except Exception as e:
-        logger.error(f"Extraction failed: {e}")
-        print(f"\n✗ Extraction failed: {e}")
+    return period_input
 
 
-def run_extraction(dataset: str, config: Config) -> None:
-    """Run extraction for a dataset.
+def get_headless_option() -> bool:
+    """Get headless option from user.
     
-    Args:
-        dataset: Dataset name
-        config: Configuration object
+    Returns:
+        True if headless (browser tidak tampil), False if visible
     """
-    logger = get_logger()
+    print("\n" + "-" * 60)
+    print("OPSI TAMPILAN BROWSER")
+    print("-" * 60)
+    print("  y = Tidak tampil (headless) - lebih cepat")
+    print("  n = Tampil di layar - untuk debugging")
+    print("-" * 60)
     
-    # Get period from config or use current month
-    period_ym = config.get(f'datasets.{dataset}.period_default')
-    if not period_ym:
-        period_ym = datetime.now().strftime('%Y%m')
+    choice = input("\nJalankan tanpa tampilan browser? (Y/n): ").strip().lower()
     
-    # Snapshot date is today
-    snapshot_date = datetime.now().strftime('%Y%m%d')
-    
-    try:
-        # Create run context
-        ctx = create_run(dataset, period_ym, snapshot_date, config)
-        
-        # Re-setup logger with file handler
-        logger = setup_logger(ctx=ctx)
-        
-        logger.info(f"Created run: {ctx.run_id}")
-        logger.info(f"Run directory: {ctx.run_dir}")
-        logger.info(f"Dataset: {dataset}, Period: {period_ym}, Snapshot: {snapshot_date}")
-        
-        # TODO: Implement actual extraction
-        logger.info("Extraction not yet implemented (stub)")
-        
-        print(f"\n✓ Run created: {ctx.run_id}")
-        print(f"  Directory: {ctx.run_dir}")
-        
-    except Exception as e:
-        logger.error(f"Extraction failed: {e}")
-        print(f"\n✗ Extraction failed: {e}")
+    # Default is headless (y)
+    if choice == '' or choice == 'y':
+        return True
+    elif choice == 'n':
+        return False
+    else:
+        return True  # Default headless
 
 
-def run_extract_filters(config: Config) -> None:
-    """Extract and display filter options from SE004 Kumulatif.
-    
-    Args:
-        config: Configuration object
-    """
+def run_stub(menu_name: str) -> None:
+    """Run stub for unimplemented menu."""
     logger = get_logger()
+    logger.info(f"Selected: {menu_name} (stub)")
     
     print("\n" + "=" * 60)
-    print("Extracting filter options from SE004 Kumulatif...")
+    print(f"  {menu_name}")
     print("=" * 60)
+    print("\n  ⚠ Fitur ini belum diimplementasi.")
+    print("  Akan dikembangkan pada versi selanjutnya.")
+    print("\n" + "=" * 60)
     
-    # Create a minimal run context for browser operations
-    snapshot_date = datetime.now().strftime('%Y%m%d')
-    period_ym = datetime.now().strftime('%Y%m')
-    
-    try:
-        ctx = create_run("se004_filters", period_ym, snapshot_date, config)
-        
-        # Extract filters
-        filters = extract_se004_filters(config, ctx)
-        
-        # Print to console
-        print_filters(filters)
-        
-        # Save to JSON in workspace
-        from pathlib import Path
-        output_path = Path(config.get('workspace.base_dir', 'workspace')) / "se004_filters.json"
-        save_filters_to_json(filters, output_path)
-        
-        print(f"\n✓ Filter options extracted successfully!")
-        print(f"  Total Unit Induk: {len(filters['unit_induk'])}")
-        print(f"  Total Bulan: {len(filters['bulan'])}")
-        print(f"  Total Tahun: {len(filters['tahun'])}")
-        
-    except Exception as e:
-        logger.error(f"Failed to extract filters: {e}")
-        print(f"\n✗ Failed to extract filters: {e}")
+    input("\nTekan Enter untuk kembali ke menu...")
 
 
-def run_multi_unit_extraction(config: Config) -> None:
-    """Run multi-unit extraction for SE004 Kumulatif.
+def run_se004_kumulatif(config: Config) -> None:
+    """Run SE004 Kumulatif extraction.
     
     Args:
         config: Configuration object
     """
-    from pathlib import Path
-    
     logger = get_logger()
+    logger.info("Selected: Laporan SAIDI SAIFI Kumulatif SE004")
     
-    # Load units from selection file
+    print("\n" + "=" * 60)
+    print("  LAPORAN SAIDI SAIFI KUMULATIF SE004")
+    print("=" * 60)
+    
+    # Step 1: Load units
     units_file = Path("units_selection.yaml")
     if not units_file.exists():
         print(f"\n✗ File tidak ditemukan: {units_file}")
         print("  Buat file units_selection.yaml terlebih dahulu.")
+        input("\nTekan Enter untuk kembali ke menu...")
         return
     
     try:
         units = load_units_selection(units_file)
     except Exception as e:
         print(f"\n✗ Error loading units: {e}")
+        input("\nTekan Enter untuk kembali ke menu...")
         return
     
     if not units:
         print("\n✗ Tidak ada unit yang dipilih di units_selection.yaml")
+        input("\nTekan Enter untuk kembali ke menu...")
         return
     
-    # Show selected units
-    print("\n" + "=" * 60)
-    print("Unit yang akan didownload:")
-    print("=" * 60)
-    for i, unit in enumerate(units, 1):
-        print(f"  {i:2}. {unit['text']} [{unit['code']}]")
-    
-    # Get period input
+    # Step 2: Show selected units
     print("\n" + "-" * 60)
-    print("FORMAT PERIODE: YYYYMM")
+    print("UNIT YANG AKAN DIDOWNLOAD")
     print("-" * 60)
-    print("  YYYY = Tahun (4 digit)")
-    print("  MM   = Bulan (2 digit: 01-12)")
-    print("")
-    print("  Contoh:")
-    print("    202512 = Desember 2025")
-    print("    202501 = Januari 2025")
-    print("    202406 = Juni 2024")
-    print("-" * 60)
+    for i, unit in enumerate(units, 1):
+        print(f"  {i:2}. {unit['text']}")
+    print(f"\n  Total: {len(units)} unit")
     
-    default_period = datetime.now().strftime('%Y%m')
-    period_input = input(f"\nMasukkan periode (default: {default_period}): ").strip()
-    
-    if period_input:
-        period_ym = period_input
-    else:
-        period_ym = default_period
-    
-    # Validate format
-    if not (len(period_ym) == 6 and period_ym.isdigit()):
-        print(f"\n✗ Format periode tidak valid: {period_ym}")
-        print("  Format yang benar: YYYYMM (contoh: 202512)")
+    # Step 3: Get period
+    period_ym = get_period_input()
+    if not period_ym:
+        input("\nTekan Enter untuk kembali ke menu...")
         return
     
-    # Validate month
-    month = period_ym[4:6]
-    if not (1 <= int(month) <= 12):
-        print(f"\n✗ Bulan tidak valid: {month}")
-        print("  Bulan harus antara 01-12")
-        return
-    
-    # Confirm
     year = period_ym[:4]
-    month_names = {
-        "01": "Januari", "02": "Februari", "03": "Maret",
-        "04": "April", "05": "Mei", "06": "Juni",
-        "07": "Juli", "08": "Agustus", "09": "September",
-        "10": "Oktober", "11": "November", "12": "Desember",
-    }
-    month_name = month_names.get(month, month)
+    month = period_ym[4:6]
+    month_name = BULAN_INDONESIA.get(month, month)
     
-    print(f"\n→ Periode: {month_name} {year}")
-    print(f"→ Total unit: {len(units)}")
+    # Step 4: Get headless option
+    headless = get_headless_option()
+    
+    # Step 5: Confirm
+    print("\n" + "=" * 60)
+    print("KONFIRMASI")
+    print("=" * 60)
+    print(f"  Periode    : {month_name} {year}")
+    print(f"  Total Unit : {len(units)}")
+    print(f"  Browser    : {'Tidak tampil (headless)' if headless else 'Tampil di layar'}")
+    print("=" * 60)
     
     confirm = input("\nLanjutkan download? (y/n): ").strip().lower()
     if confirm != 'y':
-        print("Download dibatalkan.")
+        print("\n✗ Download dibatalkan.")
+        input("\nTekan Enter untuk kembali ke menu...")
         return
     
-    # Create run context
+    # Step 6: Update config with headless option
+    config.data['runtime'] = config.data.get('runtime', {})
+    config.data['runtime']['headless'] = headless
+    
+    # Step 7: Create run context
     snapshot_date = datetime.now().strftime('%Y%m%d')
-    ctx = create_run("se004_multi", period_ym, snapshot_date, config)
+    ctx = create_run("se004_kumulatif", period_ym, snapshot_date, config)
     
     # Re-setup logger
     logger = setup_logger(ctx=ctx)
-    logger.info(f"Multi-unit download started: {len(units)} units, period {period_ym}")
+    logger.info(f"Starting SE004 Kumulatif extraction")
+    logger.info(f"Period: {period_ym}, Units: {len(units)}, Headless: {headless}")
     
-    # Run multi-unit download
-    results = run_multi_unit_download(config, ctx, units, period_ym)
-    
-    # Print summary
+    # Step 8: Run extraction
     print("\n" + "=" * 60)
-    print("DOWNLOAD SUMMARY")
+    print("MEMULAI PROSES EKSTRAKSI")
     print("=" * 60)
-    print(f"  Total units: {results['total']}")
-    print(f"  ✓ Success: {results['success']}")
-    print(f"  ✗ Failed: {results['failed']}")
-    print(f"  Run directory: {ctx.run_dir}")
+    print(f"  Run ID     : {ctx.run_id}")
+    print(f"  Direktori  : {ctx.run_dir}")
+    print("=" * 60)
     
-    if results['files']:
-        print("\nFiles downloaded:")
-        for f in results['files']:
-            print(f"  → {Path(f).name}")
-    
-    if results['errors']:
-        print("\nErrors:")
-        for err in results['errors']:
-            print(f"  ✗ {err['unit']}: {err['error']}")
-    
-    # Show parsing results
-    if results.get('parsed_csv_path'):
-        print("\n" + "-" * 60)
-        print("PARSING RESULT")
-        print("-" * 60)
-        print(f"  ✓ Rows parsed: {results.get('rows_parsed', 0)}")
-        print(f"  ✓ CSV file: {Path(results['parsed_csv_path']).name}")
+    try:
+        results = run_multi_unit_download(config, ctx, units, period_ym)
+        
+        # Step 9: Print final summary
+        print("\n" + "=" * 60)
+        print("HASIL EKSTRAKSI")
+        print("=" * 60)
+        print(f"\n  📊 RINGKASAN")
+        print(f"  " + "-" * 40)
+        print(f"  Total unit      : {results['total']}")
+        print(f"  ✓ Berhasil      : {results['success']}")
+        print(f"  ✗ Gagal         : {results['failed']}")
+        
+        if results.get('rows_parsed'):
+            print(f"\n  📄 HASIL PARSING")
+            print(f"  " + "-" * 40)
+            print(f"  Total baris     : {results['rows_parsed']:,}")
+            print(f"  File CSV        : {Path(results.get('parsed_csv_path', '')).name}")
         
         if results.get('validation_warnings'):
-            print(f"\n  ⚠ Validation warnings: {len(results['validation_warnings'])}")
-            for w in results['validation_warnings'][:5]:
-                print(f"    - {w}")
+            print(f"\n  ⚠ PERINGATAN VALIDASI: {len(results['validation_warnings'])}")
+            for w in results['validation_warnings'][:3]:
+                print(f"     - {w}")
+        
+        print(f"\n  📁 LOKASI FILE")
+        print(f"  " + "-" * 40)
+        print(f"  Run directory   : {ctx.run_dir}")
+        print(f"  Excel files     : {ctx.excel_dir}")
+        print(f"  Parsed CSV      : {ctx.parsed_dir}")
+        
+        if results['errors']:
+            print(f"\n  ❌ DAFTAR ERROR")
+            print(f"  " + "-" * 40)
+            for err in results['errors']:
+                print(f"     - {err['unit']}: {err['error']}")
+        
+        print("\n" + "=" * 60)
+        logger.info(f"Extraction completed: {results['success']}/{results['total']} success")
+        
+    except Exception as e:
+        logger.error(f"Extraction failed: {e}")
+        print(f"\n✗ Ekstraksi gagal: {e}")
+    
+    input("\nTekan Enter untuk kembali ke menu...")
+
+
+def handle_menu_choice(choice: str, config: Config) -> bool:
+    """Handle menu choice.
+    
+    Returns:
+        False if exit, True otherwise
+    """
+    if choice == "1":
+        run_stub("Laporan SAIDI SAIFI SE004")
+        return True
+    
+    elif choice == "2":
+        run_se004_kumulatif(config)
+        return True
+    
+    elif choice == "3":
+        run_stub("Laporan Detail Kode Gangguan SE004")
+        return True
+    
+    elif choice == "0":
+        get_logger().info("Exiting application")
+        print("\n👋 Terima kasih telah menggunakan APKT Agent!")
+        return False
+    
+    else:
+        print("\n⚠ Pilihan tidak valid. Silakan coba lagi.")
+        return True
 
 
 def main() -> int:
@@ -441,15 +339,17 @@ def main() -> int:
         
         logger.info("APKT Agent CLI started")
         
-        # Check connectivity before showing menu
+        print_header()
+        
+        # Check connectivity
         if not check_connectivity(config):
-            print("\nExiting due to connectivity issue.")
+            print("\n✗ Keluar karena masalah koneksi.")
             return 1
         
         # Interactive menu
         while True:
             print_menu()
-            choice = input("Enter your choice (1-8): ").strip()
+            choice = input("Pilih menu (0-3): ").strip()
             
             if not handle_menu_choice(choice, config):
                 break
@@ -457,11 +357,11 @@ def main() -> int:
         return 0
     
     except KeyboardInterrupt:
-        print("\n\nApplication interrupted by user.")
+        print("\n\n⚠ Aplikasi dihentikan oleh pengguna.")
         return 1
     
     except Exception as e:
-        print(f"\nFatal error: {e}")
+        print(f"\n✗ Fatal error: {e}")
         return 1
 
 

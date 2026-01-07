@@ -1,5 +1,6 @@
 """SE004 Kumulatif dataset implementation."""
 
+import json
 from pathlib import Path
 from typing import List, Optional
 
@@ -9,6 +10,8 @@ from ...browser.driver import open_browser, close_browser
 from ...models import DownloadedFile, ParsedData
 from ...workspace import RunContext
 from ..base import BaseDataset, RunResult
+from .parser import list_excel_files, parse_all_excel_files, save_csv_indonesian_format
+from ...transform.validate import validate_se004_kumulatif
 
 
 # Indonesian month names for period conversion
@@ -136,11 +139,73 @@ class SE004KumulatifDataset(BaseDataset):
             
             self.logger.info(f"Excel downloaded: {downloaded_path}")
             
+            # === PARSING PHASE ===
+            self.logger.info("Starting parsing phase...")
+            
+            # Find all Excel files in raw/excel directory
+            excel_files = list_excel_files(ctx.excel_dir)
+            self.logger.info(f"Found {len(excel_files)} Excel files to parse")
+            
+            parsed_csv_path = None
+            rows_parsed = 0
+            validation_warnings = []
+            
+            if excel_files:
+                # Parse all files into combined DataFrame
+                combined_df = parse_all_excel_files(ctx.excel_dir)
+                rows_parsed = len(combined_df)
+                
+                # Validate
+                validation = validate_se004_kumulatif(combined_df)
+                validation_warnings = validation.warnings
+                
+                if validation.warnings:
+                    self.logger.warning(f"Validation warnings: {len(validation.warnings)}")
+                    for w in validation.warnings[:5]:
+                        self.logger.warning(f"  - {w}")
+                
+                # Ensure parsed directory exists
+                ctx.parsed_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Generate CSV filename
+                csv_filename = f"se004_kumulatif_{ctx.period_ym}_{ctx.run_id}.csv"
+                csv_path = ctx.parsed_dir / csv_filename
+                
+                # Save with Indonesian format (semicolon delimiter, . ribuan, , desimal)
+                save_csv_indonesian_format(combined_df, csv_path)
+                parsed_csv_path = str(csv_path)
+                
+                self.logger.info(f"Parsed {rows_parsed} rows from {len(excel_files)} files")
+                self.logger.info(f"CSV saved: {csv_path}")
+            
+            # Update manifest.json
+            manifest = {
+                "run_id": ctx.run_id,
+                "period_ym": ctx.period_ym,
+                "timestamp": str(ctx.snapshot_date),
+                "downloaded_files": [downloaded_path.name],
+                "parsed_csv_path": parsed_csv_path,
+                "row_count": rows_parsed,
+                "files_parsed": len(excel_files),
+                "validation": {
+                    "is_valid": len(validation_warnings) == 0,
+                    "warnings": validation_warnings,
+                },
+            }
+            
+            manifest_path = ctx.run_dir / "manifest.json"
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2, ensure_ascii=False)
+            
+            self.logger.info(f"Manifest saved: {manifest_path}")
+            
             return RunResult(
                 success=True,
-                message=f"Download successful - {month_name} {year}",
+                message=f"Download+Parse OK - {month_name} {year} - {rows_parsed} rows",
                 files_downloaded=[str(downloaded_path)],
-                rows_parsed=0,
+                rows_parsed=rows_parsed,
+                parsed_csv_path=parsed_csv_path,
+                validation_warnings=validation_warnings,
             )
             
         except Exception as e:
