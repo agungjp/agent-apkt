@@ -13,7 +13,10 @@ workspace:
   root: "./workspace"
 
 runtime:
-  headless: false
+  headless: true
+  viewport:
+    width: 1920
+    height: 1080
 
 google_sheets:
   enabled: true

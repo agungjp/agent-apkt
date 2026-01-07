@@ -30,7 +30,15 @@ def open_browser(ctx: RunContext, config: Config) -> Tuple[Playwright, Browser, 
         headless = config.get('runtime.headless', False)
         download_dir = str(ctx.excel_dir)
         
-        logger.info(f"Opening browser (headless={headless})")
+        # Get viewport settings
+        viewport_config = config.get('runtime.viewport')
+        viewport = None
+        if viewport_config and isinstance(viewport_config, dict):
+            width = viewport_config.get('width', 1920)
+            height = viewport_config.get('height', 1080)
+            viewport = {"width": width, "height": height}
+        
+        logger.info(f"Opening browser (headless={headless}, viewport={viewport})")
         logger.info(f"Download directory: {download_dir}")
         
         # Start Playwright with timeout
@@ -49,9 +57,10 @@ def open_browser(ctx: RunContext, config: Config) -> Tuple[Playwright, Browser, 
         )
         logger.info("Chromium launched")
         
-        # Create context with download settings
+        # Create context with download settings and viewport
         context = browser.new_context(
             accept_downloads=True,
+            viewport=viewport
         )
         
         # Set default timeout to 30 seconds
