@@ -288,50 +288,122 @@ def run_multi_unit_download(
 def _navigate_to_apktss(page) -> None:
     """Navigate from APKT home to APKT-SS subdomain."""
     if "new-apktss.pln.co.id" in page.url:
+        logger.info("✓ Already on APKT-SS, skipping navigation")
         return
     
     page.wait_for_timeout(2000)
     
     apktss = page.locator("p:has-text('APKT-SS')").first
     if apktss:
+        logger.info("🔍 Found APKT-SS link, clicking...")
         apktss.click()
         try:
             page.wait_for_url("**/new-apktss.pln.co.id/**", timeout=15000)
+            logger.info("✓ Navigated to APKT-SS")
         except Exception:
+            logger.warning("⚠ URL wait timeout, trying alternative waits...")
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(2000)
     
+    # Additional wait for page to be fully interactive
+    logger.info("🔍 Waiting for page to be fully interactive...")
+    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_timeout(2000)  # Extra buffer for JavaScript to execute
+    
     if "new-apktss.pln.co.id" not in page.url:
         raise Exception(f"Failed to navigate to APKT-SS. Current URL: {page.url}")
+    
+    logger.info("✓ APKT-SS page ready for filtering")
 
 
 def _set_unit_filter(page, unit_text: str) -> None:
     """Set the Unit Induk filter."""
+    from ..logging_ import get_logger
+    logger = get_logger()
+    
+    logger.info(f"🔍 Waiting for unit selector to be visible...")
     unit_select = page.locator("select#unitInduk, select[name='unitInduk']").first
-    unit_select.select_option(label=unit_text)
+    try:
+        # Wait for element to be visible and enabled before selecting
+        unit_select.wait_for(state="visible", timeout=10000)
+        logger.info(f"✓ Unit selector visible, selecting: {unit_text}")
+        unit_select.select_option(label=unit_text)
+        logger.info(f"✓ Unit selected: {unit_text}")
+    except Exception as e:
+        logger.error(f"✗ Failed to select unit: {e}")
+        raise
+    
     page.wait_for_timeout(1000)
 
 
 def _set_period_filter(page, month_name: str, year: str) -> None:
     """Set the Period filter (month and year)."""
+    import sys
+    from ..logging_ import get_logger
+    logger = get_logger()
+    
     # Set Month
+    logger.info(f"🔍 Waiting for month selector [vc-component-4] to be visible...")
     month_select = page.locator("select[name='vc-component-4']").first
-    month_select.select_option(label=month_name)
+    try:
+        # Wait for month select to be visible - critical for headless mode
+        month_select.wait_for(state="visible", timeout=15000)
+        logger.info(f"✓ Month selector visible, selecting: {month_name}")
+        month_select.select_option(label=month_name)
+        logger.info(f"✓ Month selected: {month_name}")
+    except Exception as e:
+        logger.error(f"✗ Failed to select month: {e}")
+        # Try to debug - take screenshot if headless
+        try:
+            screenshot_path = f"debug_month_select_error_{page.context.browser.chromium_executable_path if hasattr(page.context, 'browser') else 'unknown'}.png"
+            page.screenshot(path=screenshot_path)
+            logger.error(f"📸 Screenshot saved to: {screenshot_path}")
+        except:
+            pass
+        raise
+    
     page.wait_for_timeout(500)
     
     # Set Year
+    logger.info(f"🔍 Waiting for year selector [vc-component-6] to be visible...")
     year_select = page.locator("select[name='vc-component-6']").first
-    year_select.select_option(label=year)
+    try:
+        year_select.wait_for(state="visible", timeout=10000)
+        logger.info(f"✓ Year selector visible, selecting: {year}")
+        year_select.select_option(label=year)
+        logger.info(f"✓ Year selected: {year}")
+    except Exception as e:
+        logger.error(f"✗ Failed to select year: {e}")
+        raise
+    
     page.wait_for_timeout(500)
 
 
 def _click_export_excel(page) -> None:
     """Click Export button and select Excel."""
+    from ..logging_ import get_logger
+    logger = get_logger()
+    
     # Click Eksport button
+    logger.info("🔍 Looking for Eksport button...")
     export_btn = page.locator("button:has-text('Eksport')").first
-    export_btn.click()
+    try:
+        export_btn.wait_for(state="visible", timeout=5000)
+        logger.info("✓ Eksport button found, clicking...")
+        export_btn.click()
+    except Exception as e:
+        logger.error(f"✗ Eksport button not found or not clickable: {e}")
+        raise
+    
     page.wait_for_timeout(500)
     
     # Click Excel option
+    logger.info("🔍 Looking for Excel option...")
     excel_btn = page.locator("button:has-text('Excel')").first
-    excel_btn.click()
+    try:
+        excel_btn.wait_for(state="visible", timeout=5000)
+        logger.info("✓ Excel option found, clicking...")
+        excel_btn.click()
+    except Exception as e:
+        logger.error(f"✗ Excel option not found or not clickable: {e}")
+        raise
