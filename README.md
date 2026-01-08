@@ -19,7 +19,14 @@ Automated data extraction tool for PLN APKT (Aplikasi Pelayanan dan Keluhan Terp
 
 ---
 
-## 🚀 Quick Start (New Machine Setup)
+## 🚀 Installation Guide
+
+**👉 For detailed step-by-step installation instructions, read:**
+- **[README_INSTALL.md](README_INSTALL.md)** - Complete Windows installation guide (Panduan lengkap untuk Windows)
+
+---
+
+## ⚡ Quick Start (Experienced Users)
 
 ### 1. Clone Repository
 
@@ -130,7 +137,7 @@ apkt:
   timeout: 30000
 
 runtime:
-  headless: true          # Run browser without visible window
+  headless: true # Run browser without visible window
   viewport:
     width: 1920
     height: 1080
@@ -139,7 +146,7 @@ google_sheets:
   enabled: true
   spreadsheet_id: "your-spreadsheet-id"
   credentials_json_path: "src/apkt_agent/secrets/your-service-account.json"
-  default_mode: "append"  # "append" or "replace"
+  default_mode: "append" # "append" or "replace"
 
 datasets:
   se004_kumulatif:
@@ -169,6 +176,7 @@ apkt-agent
 ```
 
 Follow the menu prompts:
+
 1. Select **2** for "Laporan SAIDI SAIFI Kumulatif SE004"
 2. Enter period (YYYYMM format, e.g., `202503` for March 2025)
 3. Choose headless mode: `y` (faster) or `n` (for debugging)
@@ -191,6 +199,7 @@ Each run creates a directory in `workspace/runs/`:
 ### Results Summary
 
 After successful run:
+
 ```
 📊 RINGKASAN
 ----------------------------------------
@@ -217,6 +226,7 @@ Baris diupload  : 1,512
 ### Browser Timeout Issues
 
 If you experience timeouts in headless mode:
+
 - Ensure viewport is configured (1920x1080 recommended)
 - Check network connectivity
 - Try running with headless: `n` for debugging
@@ -246,17 +256,18 @@ playwright install chromium
 
 ## 📊 Supported Reports
 
-| Report | Status | Description |
-|--------|--------|-------------|
+| Report          | Status   | Description                           |
+| --------------- | -------- | ------------------------------------- |
 | SE004 Kumulatif | ✅ Ready | SAIDI/SAIFI cumulative monthly report |
-| SE004 Detail | 🚧 Stub | SAIDI/SAIFI detail report |
-| SE004 Gangguan | 🚧 Stub | Disturbance code detail report |
+| SE004 Detail    | 🚧 Stub  | SAIDI/SAIFI detail report             |
+| SE004 Gangguan  | 🚧 Stub  | Disturbance code detail report        |
 
 ---
 
 ## 🛡️ Security Notes
 
 **Never commit these files:**
+
 - `credentials.yaml` - Contains PLN IAM password
 - `src/apkt_agent/secrets/*.json` - Google Service Account keys
 - `config.yaml` - May contain sensitive IDs
@@ -267,11 +278,11 @@ These files are gitignored by default.
 
 ## 📝 Files You Need to Create on New Machine
 
-| File | Template | Description |
-|------|----------|-------------|
-| `config.yaml` | `config.example.yaml` | App configuration |
-| `credentials.yaml` | `credentials.example.yaml` | PLN IAM credentials |
-| `src/apkt_agent/secrets/apkt-agent.json` | (get from owner) | Google Service Account |
+| File                                     | Template                   | Description            |
+| ---------------------------------------- | -------------------------- | ---------------------- |
+| `config.yaml`                            | `config.example.yaml`      | App configuration      |
+| `credentials.yaml`                       | `credentials.example.yaml` | PLN IAM credentials    |
+| `src/apkt_agent/secrets/apkt-agent.json` | (get from owner)           | Google Service Account |
 
 ---
 
