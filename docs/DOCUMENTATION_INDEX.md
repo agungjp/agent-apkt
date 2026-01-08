@@ -10,7 +10,7 @@ Master index untuk semua dokumentasi yang tersedia.
 
 Saya perlu setup program di laptop Windows saya.
 
-**Start here:** [📖 README_INSTALL.md](README_INSTALL.md) (di docs/ folder)
+**Start here:** [📖 README_INSTALL.md](README_INSTALL.md)
 
 Dokumentasi lengkap step-by-step dalam Bahasa Indonesia yang mudah diikuti.
 
@@ -58,7 +58,7 @@ Lalu lanjut ke: [📋 SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) (detail)
 ### Scenario 1: "Aku user baru, mau setup di Windows"
 
 1. Clone GitHub repo
-2. Baca **[README_INSTALL.md](README_INSTALL.md)** (di docs/ folder) ← **START HERE**
+2. Baca **[README_INSTALL.md](README_INSTALL.md)** ← **START HERE**
 3. Follow step-by-step
 4. Done! Jalankan `apkt-agent`
 
@@ -104,7 +104,7 @@ Lalu lanjut ke: [📋 SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) (detail)
 
 **Jika Anda adalah USER:**
 
-1. Baca **[README_INSTALL.md](README_INSTALL.md)** (di docs/ folder) → Troubleshooting section
+1. Baca **[README_INSTALL.md](README_INSTALL.md)** → Troubleshooting section
 2. Jika masih stuck, hubungi admin
 
 **Jika Anda adalah ADMIN:**

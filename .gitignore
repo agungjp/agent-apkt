@@ -133,13 +133,10 @@ dmypy.json
 # Project specific
 workspace/
 secrets/
-credentials/
-src/apkt_agent/secrets/
 config.yaml
 credentials.yaml
 *.xlsx
 *.csv
 *-service-account.json
-apkt-agent-*.json
-RAHASIA_SETUP.zip
+apkt-agent-*.jsonRAHASIA_SETUP.zip
 *.zip
