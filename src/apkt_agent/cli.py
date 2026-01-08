@@ -7,6 +7,7 @@ from typing import Tuple
 
 import requests
 
+from . import __version__
 from .config import Config, load_config
 from .logging_ import setup_logger, get_logger
 from .workspace import create_run
@@ -73,9 +74,10 @@ def check_connectivity(config: Config) -> bool:
 
 
 def print_header() -> None:
-    """Print CLI header."""
+    """Print CLI header with version info."""
     print("\n" + "=" * 60)
     print("APKT Agent - Data Extraction Tool")
+    print(f"Version {__version__} | Python {sys.version.split()[0]}")
     print("=" * 60)
 
 
@@ -353,6 +355,14 @@ def main() -> int:
         logger.info("APKT Agent CLI started")
         
         print_header()
+        
+        # Show configuration info
+        print("\n📋 INFORMASI KONFIGURASI:")
+        print("-" * 60)
+        login_url = config.get('apkt.login_url', 'Not configured')
+        print(f"  APKT URL        : {login_url}")
+        print(f"  Config file     : {config.config_path}")
+        print("-" * 60)
         
         # Check connectivity
         if not check_connectivity(config):
