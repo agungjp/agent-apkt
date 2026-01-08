@@ -287,6 +287,9 @@ def run_multi_unit_download(
 
 def _navigate_to_apktss(page) -> None:
     """Navigate from APKT home to APKT-SS subdomain."""
+    from ...logging_ import get_logger
+    logger = get_logger()
+    
     if "new-apktss.pln.co.id" in page.url:
         logger.info("✓ Already on APKT-SS, skipping navigation")
         return
