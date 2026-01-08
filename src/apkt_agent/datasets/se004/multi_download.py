@@ -321,7 +321,7 @@ def _navigate_to_apktss(page) -> None:
 
 def _set_unit_filter(page, unit_text: str) -> None:
     """Set the Unit Induk filter."""
-    from ..logging_ import get_logger
+    from ...logging_ import get_logger
     logger = get_logger()
     
     logger.info(f"🔍 Waiting for unit selector to be visible...")
@@ -341,8 +341,7 @@ def _set_unit_filter(page, unit_text: str) -> None:
 
 def _set_period_filter(page, month_name: str, year: str) -> None:
     """Set the Period filter (month and year)."""
-    import sys
-    from ..logging_ import get_logger
+    from ...logging_ import get_logger
     logger = get_logger()
     
     # Set Month
@@ -384,7 +383,7 @@ def _set_period_filter(page, month_name: str, year: str) -> None:
 
 def _click_export_excel(page) -> None:
     """Click Export button and select Excel."""
-    from ..logging_ import get_logger
+    from ...logging_ import get_logger
     logger = get_logger()
     
     # Click Eksport button
