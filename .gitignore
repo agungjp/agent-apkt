@@ -138,4 +138,5 @@ credentials.yaml
 *.xlsx
 *.csv
 *-service-account.json
-apkt-agent-*.json
+apkt-agent-*.jsonRAHASIA_SETUP.zip
+*.zip
