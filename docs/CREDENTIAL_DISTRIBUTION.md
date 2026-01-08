@@ -13,21 +13,21 @@ File ZIP ini berisi 3 file credential yang **SANGAT SENSITIF** dan diperlukan ag
 - **Apa itu:** File konfigurasi aplikasi dengan setting PLN IAM
 - **Berisi:** Username/password PLN IAM asli dan ID Google Spreadsheet
 - **Bahaya jika bocor:** Orang lain bisa login ke akun PLN Anda dan akses data sensitif
-- **Aksi:** Jalankan `pip install -e . && playwright install chromium`
+- **Lokasi:** Taruh di folder `credentials/` setelah extract
 
 ### 2. **units_selection.yaml** (1.3 KB)
 
 - **Apa itu:** Daftar unit/wilayah PLN yang akan didownload
 - **Berisi:** Kode dan nama 9 wilayah PLN
 - **Bahaya jika bocor:** Rendah, informasi bersifat publik
-- **Aksi:** Menentukan unit mana saja yang didownload dalam setiap run
+- **Lokasi:** Taruh di folder `credentials/` setelah extract
 
 ### 3. **apkt-agent-af84fa7cde8f.json** (2.3 KB)
 
 - **Apa itu:** Private key dari Google Service Account
 - **Berisi:** Kunci autentikasi untuk mengakses Google Sheets API
 - **Bahaya jika bocor:** Orang lain bisa mengubah/menghapus data di Google Sheets Anda
-- **Fungsi:** Memungkinkan bot auto-upload hasil parsing ke Google Sheets
+- **Lokasi:** Taruh di folder `src/apkt_agent/secrets/` setelah extract
 
 ---
 
@@ -97,7 +97,7 @@ Anda akan menerima file `RAHASIA_SETUP.zip` dari Developer/Administrator. File i
 
 #### **Langkah Setup:**
 
-1. **Baca panduan instalasi:** `README_INSTALL.md` di GitHub
+1. **Baca panduan instalasi:** `docs/README_INSTALL.md` di GitHub
 2. **Clone repository:**
 
    ```bash
@@ -109,16 +109,16 @@ Anda akan menerima file `RAHASIA_SETUP.zip` dari Developer/Administrator. File i
 
    - Tempatkan file `RAHASIA_SETUP.zip` di folder `agent-apkt`
    - Klik kanan → Extract All
-   - Pastikan ketiga file sudah ada:
-     - `config.yaml`
-     - `units_selection.yaml`
-     - `apkt-agent-af84fa7cde8f.json`
+   - File akan otomatis masuk ke folder yang benar:
+     - `credentials/config.yaml`
+     - `credentials/units_selection.yaml`
+     - `src/apkt_agent/secrets/apkt-agent-af84fa7cde8f.json`
 
-4. **Lanjutkan dengan README_INSTALL.md untuk langkah instalasi selanjutnya**
+4. **Lanjutkan dengan `docs/README_INSTALL.md` untuk langkah instalasi selanjutnya**
 
 #### **Jika Ada Masalah:**
 
-- Baca troubleshooting section di `README_INSTALL.md`
+- Baca troubleshooting section di `docs/README_INSTALL.md`
 - Hubungi Developer/Administrator
 
 ---

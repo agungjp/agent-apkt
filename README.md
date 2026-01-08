@@ -22,7 +22,8 @@ Automated data extraction tool for PLN APKT (Aplikasi Pelayanan dan Keluhan Terp
 ## 🚀 Installation Guide
 
 **👉 For detailed step-by-step installation instructions, read:**
-- **[README_INSTALL.md](README_INSTALL.md)** - Complete Windows installation guide (Panduan lengkap untuk Windows)
+
+- **[docs/README_INSTALL.md](docs/README_INSTALL.md)** - Complete Windows installation guide (Panduan lengkap untuk Windows)
 
 ---
 
@@ -280,13 +281,21 @@ These files are gitignored by default.
 
 | File                                     | Template                   | Description            |
 | ---------------------------------------- | -------------------------- | ---------------------- |
-| `config.yaml`                            | `config.example.yaml`      | App configuration      |
-| `credentials.yaml`                       | `credentials.example.yaml` | PLN IAM credentials    |
+| `credentials/config.yaml`                | `config.example.yaml`      | App configuration      |
+| `credentials/credentials.yaml`           | `credentials.example.yaml` | PLN IAM credentials    |
 | `src/apkt_agent/secrets/apkt-agent.json` | (get from owner)           | Google Service Account |
 
 ---
 
-## 🤝 Contributing
+## 📚 Documentation
+
+All detailed documentation is in the [docs/](docs/) folder:
+
+- **[docs/README_INSTALL.md](docs/README_INSTALL.md)** - Complete installation guide (Indonesian)
+- **[docs/QUICK_START_ADMIN.md](docs/QUICK_START_ADMIN.md)** - Fast admin distribution guide
+- **[docs/CREDENTIAL_DISTRIBUTION.md](docs/CREDENTIAL_DISTRIBUTION.md)** - Secure credential distribution
+- **[docs/SETUP_CHECKLIST.md](docs/SETUP_CHECKLIST.md)** - Complete setup checklist
+- **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** - Master documentation index
 
 1. Fork the repository
 2. Create a feature branch

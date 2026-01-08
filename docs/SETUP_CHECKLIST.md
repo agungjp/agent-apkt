@@ -14,6 +14,7 @@ Pastikan semua file sudah siap di repositori GitHub:
 - [ ] File .gitignore sudah include `RAHASIA_SETUP.zip` dan file-file credential lainnya
 
 **Cek GitHub:**
+
 ```bash
 git log --oneline | head -5
 git push origin main  # Push final commits
@@ -33,6 +34,7 @@ zip -j RAHASIA_SETUP.zip config.yaml units_selection.yaml src/apkt_agent/secrets
 **Hasil:** File `RAHASIA_SETUP.zip` (ukuran ~3-4 KB) di folder root
 
 **Verifikasi:**
+
 ```bash
 unzip -l RAHASIA_SETUP.zip
 # Pastikan 3 file ada:
@@ -48,7 +50,8 @@ unzip -l RAHASIA_SETUP.zip
 ### Opsi A: Email dengan Password Protection (RECOMMENDED) ⭐
 
 1. **Create password-protected ZIP** (menggunakan 7-Zip atau WinRAR):
-   - Buka `RAHASIA_SETUP.zip` 
+
+   - Buka `RAHASIA_SETUP.zip`
    - Buat archive baru dengan password enkripsi
    - Gunakan password yang kuat (12+ karakter, mix alphanumeric)
    - Contoh password: `APKTAgent2026!SecurePass`
@@ -88,7 +91,9 @@ Saya telah siapkan APKT Agent untuk Anda. APKT Agent adalah program otomasi untu
 ### 📥 Yang Perlu Anda Lakukan:
 
 #### 1. **Download File Rahasia (CRITICAL)**
+
 File berikut akan dikirim terpisah (JANGAN ubah, JANGAN share):
+
 - ✅ File ZIP dengan password (attached email ini atau via Telegram)
 - ✅ Password (via SMS/Telegram - kirim terpisah)
 
@@ -101,6 +106,7 @@ Buka file **README_INSTALL.md** yang ada di GitHub repository:
 **GitHub Link:** https://github.com/agungjp/agent-apkt
 
 Panduan ini berisi:
+
 - ✅ Cara download dan install Python 3.11
 - ✅ Cara download dan install Git
 - ✅ Cara clone repository
@@ -135,6 +141,7 @@ Setelah file di-ekstrak, ikuti langkah di README_INSTALL.md mulai dari "Langkah 
 2. Jika masih tidak ketemu solusi, hubungi saya
 
 ### 📞 Contact:
+
 - **Email:** [your email]
 - **Telegram:** [your telegram]
 - **WhatsApp:** [your whatsapp]
@@ -142,6 +149,7 @@ Setelah file di-ekstrak, ikuti langkah di README_INSTALL.md mulai dari "Langkah 
 ---
 
 Sekali lagi, pastikan Anda sudah terima:
+
 - [ ] File `RAHASIA_SETUP.zip` (atau `RAHASIA_SETUP_ENCRYPTED.zip`)
 - [ ] Password untuk file ZIP (jika encrypted)
 - [ ] Link GitHub repository
@@ -163,11 +171,11 @@ Terima kasih! 🙏
 
 Gunakan checklist berikut untuk setiap team member:
 
-| Nama | Method | File Sent | Password Sent | Confirmation |
-|------|--------|-----------|---------------|--------------|
-| [Nama 1] | Email | ✓ | ✓ | ✓ |
-| [Nama 2] | USB | ✓ | ✓ | ✓ |
-| [Nama 3] | Drive | ✓ | ✓ | ✓ |
+| Nama     | Method | File Sent | Password Sent | Confirmation |
+| -------- | ------ | --------- | ------------- | ------------ |
+| [Nama 1] | Email  | ✓         | ✓             | ✓            |
+| [Nama 2] | USB    | ✓         | ✓             | ✓            |
+| [Nama 3] | Drive  | ✓         | ✓             | ✓            |
 
 ---
 
@@ -211,12 +219,12 @@ Jika ada team member yang mengalami masalah:
 
 File-file dokumentasi yang sudah tersedia di GitHub:
 
-| File | Untuk Siapa | Konten |
-|------|-------------|--------|
-| **README.md** | Everyone | Overview dan fitur program |
-| **README_INSTALL.md** | Team Member (non-technical) | Step-by-step instalasi Windows |
-| **CREDENTIAL_DISTRIBUTION.md** | Admin/Developer | Cara distribute credential dengan aman |
-| **SETUP_CHECKLIST.md** | Admin/Developer | Checklist ini |
+| File                           | Untuk Siapa                 | Konten                                 |
+| ------------------------------ | --------------------------- | -------------------------------------- |
+| **README.md**                  | Everyone                    | Overview dan fitur program             |
+| **README_INSTALL.md**          | Team Member (non-technical) | Step-by-step instalasi Windows         |
+| **CREDENTIAL_DISTRIBUTION.md** | Admin/Developer             | Cara distribute credential dengan aman |
+| **SETUP_CHECKLIST.md**         | Admin/Developer             | Checklist ini                          |
 
 ---
 

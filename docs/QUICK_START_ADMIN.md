@@ -7,10 +7,10 @@ Dokumen singkat ini adalah panduan SUPER cepat untuk Anda (Administrator) dalam 
 ## 📋 Yang Sudah Siap
 
 ✅ **Source Code** → GitHub (https://github.com/agungjp/agent-apkt)
-✅ **Dokumentasi untuk User** → README_INSTALL.md (Indonesian, step-by-step)
-✅ **Dokumentasi untuk Admin** → CREDENTIAL_DISTRIBUTION.md
-✅ **Checklist Admin** → SETUP_CHECKLIST.md
-✅ **File Credential ZIP** → RAHASIA_SETUP.zip (3.1 KB)
+✅ **Dokumentasi untuk User** → `docs/README_INSTALL.md` (Indonesian, step-by-step)
+✅ **Dokumentasi untuk Admin** → `docs/CREDENTIAL_DISTRIBUTION.md`
+✅ **Checklist Admin** → `docs/SETUP_CHECKLIST.md`
+✅ **File Credential ZIP** → `RAHASIA_SETUP.zip` (4.5 KB, dengan struktur folder)
 
 ---
 
@@ -45,18 +45,18 @@ Setup APKT Agent super mudah. Ikuti 3 langkah:
 1. Clone GitHub:
    https://github.com/agungjp/agent-apkt
 
-2. Extract file RAHASIA_SETUP.zip yang saya kirim 
-   (PENTING: lakukan SEBELUM instalasi!)
+2. Extract file RAHASIA_SETUP.zip yang saya kirim ke folder project
+   (PENTING: extract ke root folder, folder-folder akan otomatis terbuat)
 
-3. Buka file README_INSTALL.md dan ikuti step-by-step
+3. Buka file docs/README_INSTALL.md dan ikuti step-by-step
 
 Email attachment atau kirim via [Telegram/WhatsApp/Drive]:
    - File: RAHASIA_SETUP.zip
-   
+
 Password kirim terpisah via [Telegram/WhatsApp]
 
-Kalau ada masalah, baca troubleshooting section di 
-README_INSTALL.md atau hubungi saya.
+Kalau ada masalah, baca troubleshooting section di
+docs/README_INSTALL.md atau hubungi saya.
 
 Makasih!
 ```
@@ -67,11 +67,11 @@ Makasih!
 
 Pilih salah satu:
 
-| Method | Cara Kirim | Keamanan |
-|--------|-----------|----------|
-| **Email** | Attachment ZIP | 🔒🔒🔒 (dengan password) |
-| **USB** | Flashdisk langsung | 🔒🔒🔒 |
-| **Drive** | Google Drive link (limited) | 🔒🔒 |
+| Method    | Cara Kirim                  | Keamanan                 |
+| --------- | --------------------------- | ------------------------ |
+| **Email** | Attachment ZIP              | 🔒🔒🔒 (dengan password) |
+| **USB**   | Flashdisk langsung          | 🔒🔒🔒                   |
+| **Drive** | Google Drive link (limited) | 🔒🔒                     |
 
 **⚠️ PENTING:** Password dikirim TERPISAH!
 
@@ -79,11 +79,11 @@ Pilih salah satu:
 
 ## ✅ User akan menerima:
 
-| File | Sumber | Cara dapat |
-|------|--------|-----------|
-| Source code + docs | GitHub | Download |
-| RAHASIA_SETUP.zip | Dari Anda | Email/USB/Drive |
-| Password | Dari Anda | Telegram/WhatsApp/SMS |
+| File               | Sumber    | Cara dapat            |
+| ------------------ | --------- | --------------------- |
+| Source code + docs | GitHub    | Download              |
+| RAHASIA_SETUP.zip  | Dari Anda | Email/USB/Drive       |
+| Password           | Dari Anda | Telegram/WhatsApp/SMS |
 
 ---
 
@@ -96,6 +96,7 @@ apkt-agent
 ```
 
 Program akan:
+
 1. Tanya pilih laporan
 2. Tanya periode & headless mode
 3. Login otomatis (pakai credential di file rahasia)
@@ -118,10 +119,12 @@ Program akan:
 ## 📞 Support untuk User
 
 Jika user error:
+
 1. Check README_INSTALL.md → Troubleshooting section
 2. Hubungi Anda
 
 Jika Anda perlu bantuan:
+
 1. Lihat SETUP_CHECKLIST.md (lengkap & detail)
 2. Lihat CREDENTIAL_DISTRIBUTION.md (security & update)
 
@@ -129,13 +132,13 @@ Jika Anda perlu bantuan:
 
 ## 📊 File Reference
 
-| File | Untuk | Link |
-|------|-------|------|
-| README.md | Overview | 📖 GitHub |
-| README_INSTALL.md | Installation | 📖 GitHub (untuk user) |
-| CREDENTIAL_DISTRIBUTION.md | Admin security | 📖 GitHub |
-| SETUP_CHECKLIST.md | Admin full guide | 📖 GitHub |
-| RAHASIA_SETUP.zip | Credentials | 💾 Laptop Anda |
+| File                            | Untuk            | Link                   |
+| ------------------------------- | ---------------- | ---------------------- |
+| README.md                       | Overview         | 📖 GitHub              |
+| docs/README_INSTALL.md          | Installation     | 📖 GitHub (untuk user) |
+| docs/CREDENTIAL_DISTRIBUTION.md | Admin security   | 📖 GitHub              |
+| docs/SETUP_CHECKLIST.md         | Admin full guide | 📖 GitHub              |
+| RAHASIA_SETUP.zip               | Credentials      | 💾 Laptop Anda         |
 
 ---
 
@@ -145,12 +148,13 @@ Jika Anda perlu bantuan:
 2. **Simpan backup** RAHASIA_SETUP.zip di tempat aman
 3. **Document** siapa aja yang terima credential
 4. **Jika credential expired**, bikin ZIP baru & kirim lagi
+5. **Ekstrak ZIP ke root folder** agar struktur folder otomatis terbentuk
 
 ---
 
 **Yang Perlu Dilakukan Hari Ini:**
 
-- [ ] Baca file SETUP_CHECKLIST.md (untuk pemahaman penuh)
+- [ ] Baca file `docs/SETUP_CHECKLIST.md` (untuk pemahaman penuh)
 - [ ] Kirim GitHub link ke team member
 - [ ] Kirim RAHASIA_SETUP.zip via email (dengan password)
 - [ ] Kirim password via Telegram/WhatsApp

@@ -91,13 +91,18 @@ Sebelum memulai, pastikan komputer Anda memiliki dua software berikut:
 
 ```
 agent-apkt/
-├── config.yaml                    ✅ (dari file rahasia)
-├── service_account.json           ✅ (dari file rahasia)
-├── units_selection.yaml           ✅ (dari file rahasia)
+├── credentials/
+│   ├── config.yaml                ✅ (dari file rahasia)
+│   ├── credentials.yaml           ✅ (dari file rahasia)
+│   └── units_selection.yaml       ✅ (dari file rahasia)
+├── src/
+│   └── apkt_agent/
+│       └── secrets/
+│           └── apkt-agent-af84fa7cde8f.json  ✅ (dari file rahasia)
 └── [folder dan file lainnya akan ditambah di langkah berikutnya]
 ```
 
-> ⚠️ **Jika ketiga file ini TIDAK ada, program tidak akan bisa jalan!** Hubungi Administrator/Developer jika file hilang.
+> ⚠️ **Jika file credential ini TIDAK ada di tempat yang benar, program tidak akan bisa jalan!** Hubungi Administrator/Developer jika file hilang.
 
 ---
 
@@ -129,11 +134,13 @@ agent-apkt/
 
 ```
 agent-apkt/
-├── config.yaml                    ✅ (milik Anda dari file rahasia)
-├── service_account.json           ✅ (milik Anda dari file rahasia)
-├── units_selection.yaml           ✅ (milik Anda dari file rahasia)
+├── credentials/
+│   ├── config.yaml                ✅ (milik Anda dari file rahasia)
+│   ├── credentials.yaml           ✅ (milik Anda dari file rahasia)
+│   └── units_selection.yaml       ✅ (milik Anda dari file rahasia)
 ├── src/                           ✅ (dari GitHub)
 ├── workspace/                     ✅ (dari GitHub)
+├── docs/                          ✅ (dari GitHub)
 ├── README.md                      ✅ (dari GitHub)
 └── [file lainnya...]
 ```
@@ -419,13 +426,17 @@ venv\Scripts\activate
 
 ### ❌ Error: "File config.yaml not found" atau "service_account.json not found"
 
-**Penyebab:** File rahasia belum diektrak ke folder project
+**Penyebab:** File rahasia belum diektrak ke folder project atau di tempat yang salah
 
 **Solusi:**
 
 1. Pastikan Anda sudah menerima file `RAHASIA_SETUP.zip` dari Administrator/Developer
 2. Ekstrak file ZIP ke folder `agent-apkt`
-3. Verifikasi bahwa `config.yaml`, `service_account.json`, dan `units_selection.yaml` sudah ada di folder root
+3. Verifikasi bahwa file-file sudah ada di lokasi yang benar:
+   - `credentials/config.yaml` ✅
+   - `credentials/credentials.yaml` ✅
+   - `credentials/units_selection.yaml` ✅
+   - `src/apkt_agent/secrets/apkt-agent-af84fa7cde8f.json` ✅
 
 ---
 

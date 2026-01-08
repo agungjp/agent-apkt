@@ -10,7 +10,7 @@ Master index untuk semua dokumentasi yang tersedia.
 
 Saya perlu setup program di laptop Windows saya.
 
-**Start here:** [📖 README_INSTALL.md](README_INSTALL.md)
+**Start here:** [📖 README_INSTALL.md](README_INSTALL.md) (di docs/ folder)
 
 Dokumentasi lengkap step-by-step dalam Bahasa Indonesia yang mudah diikuti.
 
@@ -30,26 +30,26 @@ Lalu lanjut ke: [📋 SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) (detail)
 
 ### 👥 Untuk Team Member (User)
 
-| Dokumen | Konten | Waktu |
-|---------|--------|-------|
+| Dokumen                                | Konten                                                                                                                                                  | Waktu  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | [README_INSTALL.md](README_INSTALL.md) | **Step-by-step installation guide** - Python setup, Git setup, clone repo, virtual env, install dependencies, cara menjalankan program, troubleshooting | 45 min |
-| [README.md](README.md) | Overview program, fitur, konfigurasi dasar | 10 min |
+| [README.md](README.md)                 | Overview program, fitur, konfigurasi dasar                                                                                                              | 10 min |
 
 ### 👨‍💼 Untuk Administrator
 
-| Dokumen | Konten | Waktu |
-|---------|--------|-------|
-| [QUICK_START_ADMIN.md](QUICK_START_ADMIN.md) | **SUPER CEPAT** - Langkah distribusi, email template, file reference | 5 min |
-| [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) | **LENGKAP** - Fase persiapan, pembuatan credential ZIP, distribution methods, email template, support guide, security checklist | 30 min |
-| [CREDENTIAL_DISTRIBUTION.md](CREDENTIAL_DISTRIBUTION.md) | **SECURITY GUIDE** - Apa isi file rahasia, siapa yang boleh dapat, cara distribute aman, update procedure, emergency response | 15 min |
+| Dokumen                                                  | Konten                                                                                                                          | Waktu  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| [QUICK_START_ADMIN.md](QUICK_START_ADMIN.md)             | **SUPER CEPAT** - Langkah distribusi, email template, file reference                                                            | 5 min  |
+| [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)                 | **LENGKAP** - Fase persiapan, pembuatan credential ZIP, distribution methods, email template, support guide, security checklist | 30 min |
+| [CREDENTIAL_DISTRIBUTION.md](CREDENTIAL_DISTRIBUTION.md) | **SECURITY GUIDE** - Apa isi file rahasia, siapa yang boleh dapat, cara distribute aman, update procedure, emergency response   | 15 min |
 
 ### 📖 Program Documentation
 
-| File | Tujuan |
-|------|--------|
-| README.md | Pengenalan & feature overview |
-| config.example.yaml | Template konfigurasi |
-| credentials.example.yaml | Template credentials |
+| File                     | Tujuan                        |
+| ------------------------ | ----------------------------- |
+| README.md                | Pengenalan & feature overview |
+| config.example.yaml      | Template konfigurasi          |
+| credentials.example.yaml | Template credentials          |
 
 ---
 
@@ -58,7 +58,7 @@ Lalu lanjut ke: [📋 SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) (detail)
 ### Scenario 1: "Aku user baru, mau setup di Windows"
 
 1. Clone GitHub repo
-2. Baca **[README_INSTALL.md](README_INSTALL.md)** ← **START HERE**
+2. Baca **[README_INSTALL.md](README_INSTALL.md)** (di docs/ folder) ← **START HERE**
 3. Follow step-by-step
 4. Done! Jalankan `apkt-agent`
 
@@ -103,10 +103,12 @@ Lalu lanjut ke: [📋 SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) (detail)
 ### Scenario 5: "Ada masalah saat setup"
 
 **Jika Anda adalah USER:**
-1. Baca **[README_INSTALL.md](README_INSTALL.md)** → Troubleshooting section
+
+1. Baca **[README_INSTALL.md](README_INSTALL.md)** (di docs/ folder) → Troubleshooting section
 2. Jika masih stuck, hubungi admin
 
 **Jika Anda adalah ADMIN:**
+
 1. Baca **[SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)** → "Support & Troubleshooting" section
 2. Cek apakah user sudah ekstrak RAHASIA_SETUP.zip
 3. Cek apakah Python installation benar
@@ -196,13 +198,13 @@ README.md (Program overview)
 
 ## 🎯 Key Takeaways
 
-| Role | Action | Doc |
-|------|--------|-----|
-| **User** | Install program | README_INSTALL.md |
-| **Admin** | Quick distribution | QUICK_START_ADMIN.md |
-| **Admin** | Full planning | SETUP_CHECKLIST.md |
-| **Admin** | Security & update | CREDENTIAL_DISTRIBUTION.md |
-| **Everyone** | Program overview | README.md |
+| Role         | Action             | Doc                        |
+| ------------ | ------------------ | -------------------------- |
+| **User**     | Install program    | README_INSTALL.md          |
+| **Admin**    | Quick distribution | QUICK_START_ADMIN.md       |
+| **Admin**    | Full planning      | SETUP_CHECKLIST.md         |
+| **Admin**    | Security & update  | CREDENTIAL_DISTRIBUTION.md |
+| **Everyone** | Program overview   | README.md                  |
 
 ---
 
@@ -220,7 +222,7 @@ README.md (Program overview)
 
 **Untuk User:** Hubungi Administrator Anda
 
-**Untuk Administrator:** 
+**Untuk Administrator:**
 
 1. Cek relevant documentation di atas
 2. Jika masih stuck, review implementation details di relevant markdown files
