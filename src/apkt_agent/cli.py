@@ -182,11 +182,21 @@ def run_se004_kumulatif(config: Config) -> None:
     print("  LAPORAN SAIDI SAIFI KUMULATIF SE004")
     print("=" * 60)
     
-    # Step 1: Load units
-    units_file = Path("units_selection.yaml")
-    if not units_file.exists():
-        print(f"\n✗ File tidak ditemukan: {units_file}")
-        print("  Buat file units_selection.yaml terlebih dahulu.")
+    # Step 1: Load units - search in credentials folder first, then root
+    search_paths = [
+        Path("credentials/units_selection.yaml"),
+        Path("units_selection.yaml")
+    ]
+    
+    units_file = None
+    for path in search_paths:
+        if path.exists():
+            units_file = path
+            break
+    
+    if not units_file:
+        print(f"\n✗ File tidak ditemukan: units_selection.yaml")
+        print(f"  Cari di: {' atau '.join(str(p) for p in search_paths)}")
         input("\nTekan Enter untuk kembali ke menu...")
         return
     
