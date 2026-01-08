@@ -18,16 +18,18 @@ class Config:
         'runtime': ['headless'],
     }
 
-    def __init__(self, config_dict: Dict[str, Any]):
+    def __init__(self, config_dict: Dict[str, Any], config_path: Optional[Path] = None):
         """Initialize Config with a configuration dictionary.
         
         Args:
             config_dict: Configuration dictionary
+            config_path: Path to the configuration file (optional)
             
         Raises:
             ConfigError: If required keys are missing
         """
         self.data = config_dict
+        self.config_path = config_path or Path('config.yaml')
         self._validate()
         self._validate_google_sheets()
 
@@ -111,13 +113,16 @@ class Config:
 
 def load_config(config_path: Optional[str] = None) -> Config:
     """Load configuration from file.
-    
-    Attempts to load config.yaml first, falls back to config.example.yaml
-    if config.yaml does not exist.
+
+    Attempts to load config.yaml first from multiple locations:
+    1. Provided config_path (if specified)
+    2. ./credentials/config.yaml
+    3. ./config.yaml
+    4. ./config.example.yaml
     
     Args:
         config_path: Optional path to config file. If not provided, searches
-                    for config.yaml or config.example.yaml in project root.
+                    for config.yaml in credentials/ folder first, then root.
                     
     Returns:
         Config object
@@ -128,12 +133,25 @@ def load_config(config_path: Optional[str] = None) -> Config:
     if config_path:
         config_file = Path(config_path)
     else:
-        # Search for config files starting from current directory
+        # Search for config files in order of preference
         project_root = Path.cwd()
-        config_file = project_root / 'config.yaml'
+        search_paths = [
+            project_root / 'credentials' / 'config.yaml',  # First priority
+            project_root / 'config.yaml',                   # Second priority
+            project_root / 'config.example.yaml'            # Fallback
+        ]
         
-        if not config_file.exists():
-            config_file = project_root / 'config.example.yaml'
+        config_file = None
+        for path in search_paths:
+            if path.exists():
+                config_file = path
+                break
+        
+        if not config_file:
+            raise ConfigError(
+                f"Configuration file not found in any of: "
+                f"{', '.join(str(p) for p in search_paths)}"
+            )
     
     if not config_file.exists():
         raise ConfigError(f"Configuration file not found: {config_file}")
@@ -149,4 +167,4 @@ def load_config(config_path: Optional[str] = None) -> Config:
     if not config_dict:
         raise ConfigError(f"Configuration file is empty: {config_file}")
     
-    return Config(config_dict)
+    return Config(config_dict, config_path=config_file)
