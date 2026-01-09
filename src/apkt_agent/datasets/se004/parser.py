@@ -73,6 +73,52 @@ def _extract_after_colon(text: str) -> str:
     return text.split(":", 1)[1].strip()
 
 
+# Unit code to name mapping for fallback extraction
+UNIT_CODE_TO_NAME = {
+    "WIL_ACEH": "WILAYAH ACEH",
+    "WIL_SUMUT": "WILAYAH SUMATERA UTARA",
+    "WIL_SUMBAR": "WILAYAH SUMATERA BARAT",
+    "WIL_S2JB": "WILAYAH SUMATERA SELATAN, JAMBI & BENGKULU (S2JB)",
+    "WIL_BABEL": "WILAYAH BANGKA BELITUNG",
+    "DIST_LAMPUNG": "DISTRIBUSI LAMPUNG",
+    "WIL_RIAUKEPRI": "WILAYAH RIAU DAN KEPULAUAN RIAU",
+    "WIL_KALBAR": "WILAYAH KALIMANTAN BARAT",
+    "WIL_KALSELTENG": "WILAYAH KALIMANTAN SELATAN DAN TENGAH",
+    "WIL_KALTIM": "WILAYAH KALIMANTAN TIMUR",
+    "REG_SUMKAL": "REGIONAL SUMKAL",
+}
+
+
+def _extract_unit_from_filename(filename: str) -> Optional[str]:
+    """Extract unit name from filename as fallback.
+    
+    Args:
+        filename: Like "se004_bulanan_202508_WIL_ACEH.xlsx"
+        
+    Returns:
+        Unit name like "WILAYAH ACEH" or None
+    """
+    # Remove extension
+    name = filename.replace(".xlsx", "").replace(".xls", "")
+    
+    # Try to find unit code in filename
+    for code, full_name in UNIT_CODE_TO_NAME.items():
+        if code in name:
+            return full_name
+    
+    # Fallback: try to extract last part after underscore
+    parts = name.split("_")
+    if len(parts) >= 2:
+        # Get last 2 parts, e.g., WIL_ACEH
+        potential_code = "_".join(parts[-2:])
+        if potential_code in UNIT_CODE_TO_NAME:
+            return UNIT_CODE_TO_NAME[potential_code]
+        # Try last part only
+        if parts[-1] in UNIT_CODE_TO_NAME:
+            return UNIT_CODE_TO_NAME[parts[-1]]
+    
+    return None
+
 def _get_cell_value(ws, row: int, col: int) -> Any:
     """Get cell value safely.
     
@@ -163,9 +209,15 @@ def parse_se004_kumulatif_xlsx(file_path: Path) -> pd.DataFrame:
     # 1. unit_induk: Find cell containing "UNIT INDUK"
     unit_cell = _find_cell_by_text(ws, "UNIT INDUK")
     if unit_cell:
-        metadata["unit_induk"] = _extract_after_colon(unit_cell[2])
+        extracted_unit = _extract_after_colon(unit_cell[2])
+        # If empty after colon (merged cell issue), try to extract from filename
+        if not extracted_unit or extracted_unit.strip() == "":
+            # Filename like: se004_bulanan_202508_WIL_ACEH.xlsx -> WIL_ACEH -> WILAYAH ACEH
+            extracted_unit = _extract_unit_from_filename(file_path.name)
+        metadata["unit_induk"] = extracted_unit
     else:
-        metadata["unit_induk"] = None
+        # Fallback to filename
+        metadata["unit_induk"] = _extract_unit_from_filename(file_path.name)
     
     # 2. period_label: Find Indonesian month + year pattern
     period_cell = _find_cell_by_text(ws, r"(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+\d{4}", regex=True)
