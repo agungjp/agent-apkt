@@ -236,8 +236,8 @@ def run_multi_unit_download(
                         spreadsheet_id=gs_config['spreadsheet_id'],
                         worksheet_name=gs_config.get('worksheet_name', 'se004_kumulatif'),
                         credentials_json_path=gs_config['credentials_json_path'],
-                        mode=gs_config.get('mode', 'smart'),  # Use smart mode to replace by period
-                        period_column='period_ym',  # Column to match for smart replace
+                        mode=gs_config.get('sheets_mode', 'smart'),  # From config: 'smart', 'update', 'append', or 'replace'
+                        period_column='period_ym',  # Column to match for smart/update modes
                         period_value=period_ym,  # Period value (e.g., '202501')
                     )
                     

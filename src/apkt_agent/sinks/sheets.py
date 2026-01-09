@@ -150,9 +150,10 @@ def upload_csv_to_worksheet(
         spreadsheet_id: Google Sheets spreadsheet ID
         worksheet_name: Name of worksheet/tab to upload to
         credentials_json_path: Path to Service Account JSON
-        mode: "replace" to clear and upload fresh, "append" to add below, "smart" to replace by period
-        period_column: Column name for period detection (e.g., 'tahun_bulan' or 'periode')
-        period_value: Period value to match for smart replace (e.g., '202501')
+        mode: Upload mode - "replace" (full replace), "append" (add rows), 
+              "smart"/"update" (replace by period column if exists)
+        period_column: Column name for period detection (e.g., 'period_ym')
+        period_value: Period value to match for smart/update replace (e.g., '202501')
         
     Returns:
         Dict with upload results: {success, row_count, col_count, worksheet_name}
@@ -162,6 +163,10 @@ def upload_csv_to_worksheet(
         gspread.exceptions.APIError: If permission denied
     """
     logger = get_logger()
+    
+    # Normalize mode: 'update' is alias for 'smart'
+    if mode == 'update':
+        mode = 'smart'
     
     # Read CSV
     if not Path(csv_path).exists():

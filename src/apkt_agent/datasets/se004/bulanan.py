@@ -119,34 +119,11 @@ def _set_period_filter(page: "Page", month_name: str, year: str) -> None:
     logger = get_logger()
     
     try:
-        # Pre-check: Ensure page is fully loaded
-        page.wait_for_load_state("networkidle", timeout=10000)
-        page.wait_for_timeout(1000)  # Extra stability wait
-        
         # Set Month - using the same selector as kumulatif
         logger.info(f"🔍 Waiting for month selector to be visible...")
         month_select = page.locator("select[name='vc-component-4']").first
-        
-        # Retry logic if selector not found
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                month_select.wait_for(state="visible", timeout=5000)
-                logger.info(f"✓ Month selector visible, selecting: {month_name}")
-                break
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    logger.warning(f"⚠ Attempt {attempt + 1}/{max_retries}: Selector not visible, retrying...")
-                    page.wait_for_timeout(2000)
-                    # Try to reload page
-                    try:
-                        page.reload()
-                        page.wait_for_load_state("networkidle", timeout=5000)
-                    except Exception:
-                        pass  # Reload might fail, that's ok
-                else:
-                    raise Exception(f"Month selector not found after {max_retries} attempts: {e}")
-        
+        month_select.wait_for(state="visible", timeout=15000)
+        logger.info(f"✓ Month selector visible, selecting: {month_name}")
         month_select.select_option(label=month_name)
         logger.info(f"✓ Month selected: {month_name}")
         page.wait_for_timeout(500)
@@ -377,8 +354,8 @@ def run_se004_bulanan(
                                 spreadsheet_id=gs_config['spreadsheet_id'],
                                 worksheet_name=gs_config.get('worksheet_name_bulanan', 'se004_bulanan'),
                                 credentials_json_path=gs_config['credentials_json_path'],
-                                mode=gs_config.get('mode', 'smart'),  # Use smart mode by default
-                                period_column='period_ym',  # Column to match for smart replace (not tahun_bulan)
+                                mode=gs_config.get('sheets_mode', 'smart'),  # From config: 'smart', 'update', 'append', or 'replace'
+                                period_column='period_ym',  # Column to match for smart/update modes
                                 period_value=period_ym,  # Period value (e.g., '202501')
                             )
                             
