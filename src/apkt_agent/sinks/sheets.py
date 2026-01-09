@@ -139,7 +139,9 @@ def upload_csv_to_worksheet(
     spreadsheet_id: str,
     worksheet_name: str,
     credentials_json_path: str,
-    mode: str = "replace"
+    mode: str = "replace",
+    period_column: Optional[str] = None,
+    period_value: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Upload CSV file to Google Sheets worksheet.
     
@@ -148,7 +150,9 @@ def upload_csv_to_worksheet(
         spreadsheet_id: Google Sheets spreadsheet ID
         worksheet_name: Name of worksheet/tab to upload to
         credentials_json_path: Path to Service Account JSON
-        mode: "replace" to clear and upload fresh
+        mode: "replace" to clear and upload fresh, "append" to add below, "smart" to replace by period
+        period_column: Column name for period detection (e.g., 'tahun_bulan' or 'periode')
+        period_value: Period value to match for smart replace (e.g., '202501')
         
     Returns:
         Dict with upload results: {success, row_count, col_count, worksheet_name}
@@ -198,8 +202,69 @@ def upload_csv_to_worksheet(
             logger.info(f"Resizing worksheet to {len(values)} rows x {col_count} cols")
             worksheet.resize(rows=len(values) + 100, cols=col_count + 5)
         
-        # Handle mode: replace or append
-        if mode == "replace":
+        # Handle mode: replace, append, or smart (period-based replace)
+        if mode == "smart" and period_column and period_value:
+            # Smart mode: replace only rows matching the period
+            logger.info(f"Smart mode: Checking for existing period '{period_value}' in column '{period_column}'")
+            existing_data = worksheet.get_all_values()
+            
+            if existing_data:
+                # Find period column index
+                existing_header = existing_data[0]
+                if period_column in existing_header:
+                    period_col_idx = existing_header.index(period_column)
+                    
+                    # Find rows with matching period
+                    matching_rows = []
+                    for i, row in enumerate(existing_data[1:], start=2):  # Start from 2 (skip header)
+                        if len(row) > period_col_idx and row[period_col_idx] == period_value:
+                            matching_rows.append(i)
+                    
+                    if matching_rows:
+                        logger.info(f"Found {len(matching_rows)} rows with period '{period_value}', replacing them...")
+                        
+                        # Get all rows except matching ones
+                        kept_rows = []
+                        for i, row in enumerate(existing_data[1:], start=1):
+                            if i + 1 not in matching_rows:  # i+1 because matching_rows uses 1-based indexing from row 2
+                                kept_rows.append(row)
+                        
+                        # Combine: header + kept rows + new rows
+                        combined_values = [existing_header] + kept_rows + data_rows
+                        
+                        # Clear and upload combined data
+                        new_size = len(combined_values) + 100
+                        if worksheet.row_count < new_size:
+                            logger.info(f"Resizing worksheet to {new_size} rows")
+                            worksheet.resize(rows=new_size, cols=max(worksheet.col_count, col_count + 5))
+                        
+                        worksheet.clear()
+                        logger.info(f"Uploading {len(combined_values)} rows (kept old periods + new period data)")
+                        worksheet.update("A1", combined_values, value_input_option="RAW")
+                    else:
+                        # No matching period found, append
+                        logger.info(f"No existing data for period '{period_value}', appending...")
+                        existing_data = worksheet.get_all_values()
+                        next_row = len(existing_data) + 1
+                        total_needed_rows = next_row + len(data_rows)
+                        
+                        if worksheet.row_count < total_needed_rows:
+                            worksheet.resize(rows=total_needed_rows + 500, cols=max(worksheet.col_count, col_count + 5))
+                        
+                        worksheet.update(f"A{next_row}", data_rows, value_input_option="RAW")
+                else:
+                    logger.warning(f"Period column '{period_column}' not found, falling back to append mode")
+                    existing_data = worksheet.get_all_values()
+                    next_row = len(existing_data) + 1
+                    if worksheet.row_count < next_row + len(data_rows):
+                        worksheet.resize(rows=next_row + len(data_rows) + 500, cols=max(worksheet.col_count, col_count + 5))
+                    worksheet.update(f"A{next_row}", data_rows, value_input_option="RAW")
+            else:
+                # Empty sheet, add with header
+                logger.info("Sheet is empty, uploading with header")
+                worksheet.update("A1", values, value_input_option="RAW")
+        
+        elif mode == "replace":
             logger.info("Clearing existing data (mode=replace)")
             worksheet.clear()
             # Upload with header
