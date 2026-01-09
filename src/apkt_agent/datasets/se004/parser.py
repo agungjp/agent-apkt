@@ -206,18 +206,18 @@ def parse_se004_kumulatif_xlsx(file_path: Path) -> pd.DataFrame:
     # === EXTRACT METADATA ===
     metadata = {}
     
-    # 1. unit_induk: Find cell containing "UNIT INDUK"
-    unit_cell = _find_cell_by_text(ws, "UNIT INDUK")
-    if unit_cell:
-        extracted_unit = _extract_after_colon(unit_cell[2])
-        # If empty after colon (merged cell issue), try to extract from filename
-        if not extracted_unit or extracted_unit.strip() == "":
-            # Filename like: se004_bulanan_202508_WIL_ACEH.xlsx -> WIL_ACEH -> WILAYAH ACEH
-            extracted_unit = _extract_unit_from_filename(file_path.name)
-        metadata["unit_induk"] = extracted_unit
+    # 1. unit_induk: PRIORITIZE filename because Excel content can be wrong
+    #    (e.g., REG_SUMKAL.xlsx contains "WILAYAH KALIMANTAN TIMUR" from server)
+    filename_unit = _extract_unit_from_filename(file_path.name)
+    if filename_unit:
+        metadata["unit_induk"] = filename_unit
     else:
-        # Fallback to filename
-        metadata["unit_induk"] = _extract_unit_from_filename(file_path.name)
+        # Fallback to Excel cell if filename extraction failed
+        unit_cell = _find_cell_by_text(ws, "UNIT INDUK")
+        if unit_cell:
+            metadata["unit_induk"] = _extract_after_colon(unit_cell[2])
+        else:
+            metadata["unit_induk"] = None
     
     # 2. period_label: Find Indonesian month + year pattern
     period_cell = _find_cell_by_text(ws, r"(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+\d{4}", regex=True)
