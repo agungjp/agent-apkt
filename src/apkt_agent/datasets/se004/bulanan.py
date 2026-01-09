@@ -378,7 +378,7 @@ def run_se004_bulanan(
                                 worksheet_name=gs_config.get('worksheet_name_bulanan', 'se004_bulanan'),
                                 credentials_json_path=gs_config['credentials_json_path'],
                                 mode=gs_config.get('mode', 'smart'),  # Use smart mode by default
-                                period_column='tahun_bulan',  # Column to match for smart replace
+                                period_column='period_ym',  # Column to match for smart replace (not tahun_bulan)
                                 period_value=period_ym,  # Period value (e.g., '202501')
                             )
                             
