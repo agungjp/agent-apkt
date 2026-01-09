@@ -484,6 +484,12 @@ def save_csv_indonesian_format(df: pd.DataFrame, output_path: Path) -> Path:
     # Create a copy to avoid modifying original
     df_out = df.copy()
     
+    # Strip and clean tanggal_cetak column
+    if "tanggal_cetak" in df_out.columns:
+        df_out["tanggal_cetak"] = df_out["tanggal_cetak"].apply(
+            lambda x: str(x).strip() if pd.notna(x) and x else ""
+        )
+    
     # Format numeric columns to Indonesian format
     for col in numeric_columns:
         if col in df_out.columns:

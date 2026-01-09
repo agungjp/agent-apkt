@@ -186,7 +186,10 @@ def parse_tanggal_to_ddmmyyyy(text: str) -> Optional[str]:
     if not text:
         return None
     
-    text = text.strip()
+    # Strip all whitespace including leading/trailing spaces and special chars
+    text = str(text).strip()
+    # Remove extra spaces/newlines in the middle
+    text = re.sub(r'\s+', ' ', text)
     
     # Try Indonesian format: "Selasa, 06 Januari 2026" or "06 Januari 2026"
     match = re.search(
@@ -207,7 +210,15 @@ def parse_tanggal_to_ddmmyyyy(text: str) -> Optional[str]:
         year, month, day = iso_match.groups()
         return f"{day}/{month}/{year}"
     
-    return text  # Return original if can't parse
+    # Try dd/mm/yyyy format (already correct format)
+    ddmmyyyy_match = re.search(r'(\d{1,2})/(\d{1,2})/(\d{4})', text)
+    if ddmmyyyy_match:
+        day = ddmmyyyy_match.group(1).zfill(2)
+        month = ddmmyyyy_match.group(2).zfill(2)
+        year = ddmmyyyy_match.group(3)
+        return f"{day}/{month}/{year}"
+    
+    return text.strip() if text else None  # Return original if can't parse, stripped
 
 
 # Legacy dataclasses for backward compatibility

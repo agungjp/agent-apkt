@@ -19,14 +19,20 @@ def load_credentials() -> Tuple[Optional[str], Optional[str]]:
     Returns:
         Tuple of (username, password) or (None, None) if file not found
     """
-    cred_file = Path("credentials.yaml")
-    if cred_file.exists():
-        try:
-            with open(cred_file, 'r') as f:
-                creds = yaml.safe_load(f)
-                return creds.get('username'), creds.get('password')
-        except Exception:
-            pass
+    # Try multiple paths
+    cred_paths = [
+        Path("credentials/credentials.yaml"),
+        Path("credentials.yaml"),
+    ]
+    
+    for cred_file in cred_paths:
+        if cred_file.exists():
+            try:
+                with open(cred_file, 'r') as f:
+                    creds = yaml.safe_load(f)
+                    return creds.get('username'), creds.get('password')
+            except Exception:
+                pass
     return None, None
 
 
@@ -93,28 +99,18 @@ def login_apkt(page: Page, ctx: RunContext, config: Config) -> bool:
         page.wait_for_url("**/iam.pln.co.id/**", timeout=30000)
         logger.info(f"Redirected to IAM: {page.url}")
         
-        # Step 4: Get credentials (from file or terminal)
-        logger.info("Step 4: Getting credentials...")
+        # Step 4: Get credentials from credentials.yaml
+        logger.info("Step 4: Getting credentials from file...")
         
-        # Try to load from credentials.yaml first
+        # Load credentials from credentials.yaml
         username, password = load_credentials()
         
-        if username and password:
-            logger.info("Loaded credentials from credentials.yaml")
-            print("\n[Using credentials from credentials.yaml]")
-        else:
-            # Fallback to terminal input
-            print("\n" + "=" * 60)
-            print("IAM Login Required")
-            print("=" * 60)
-            username = input("Username: ").strip()
-            password = getpass.getpass("Password: ")
-        
         if not username or not password:
-            raise ApktAuthError("Username and password are required")
+            raise ApktAuthError("Username and password not found in credentials.yaml")
         
-        # Step 5: Fill and submit IAM form
+        # Step 5: Fill and submit IAM form (silent, using credentials from config)
         logger.info("Step 5: Filling IAM login form...")
+        print("\n  ℹ Autentikasi dengan credential dari config...")
         
         # Try different selectors for username field
         username_field = page.locator("input[name='username'], input[name='email'], input[type='text']").first
@@ -150,7 +146,20 @@ def login_apkt(page: Page, ctx: RunContext, config: Config) -> bool:
                 print("\n" + "-" * 60)
                 print(f"Two-Factor Authentication Required (Attempt {otp_attempt}/{max_otp_attempts})")
                 print("-" * 60)
-                otp_code = input("Enter OTP code: ").strip()
+                
+                try:
+                    otp_code = input("Enter OTP code: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    # Handle EOF error from piped input (iTerm issue)
+                    # Try to read from stdin directly
+                    import sys
+                    try:
+                        otp_code = sys.stdin.readline().strip()
+                        if not otp_code:
+                            raise EOFError("No OTP input available")
+                    except Exception as e:
+                        logger.error(f"Failed to read OTP input: {e}")
+                        raise ApktAuthError(f"Failed to read OTP input: {e}")
                 
                 if not otp_code:
                     print("OTP code cannot be empty. Please try again.")

@@ -1,6 +1,6 @@
 """APKT Agent - Automated data extraction for PLN's APKT system."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Development Team"
 
 from .config import Config, ConfigError, load_config

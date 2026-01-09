@@ -3,7 +3,7 @@
 import json
 import yaml
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 
 from ...browser.auth import login_apkt
 from ...browser.download import download_excel
@@ -63,7 +63,8 @@ def run_multi_unit_download(
     ctx: RunContext,
     units: List[Dict[str, str]],
     period_ym: str,
-) -> Dict[str, Any]:
+    page: Optional['Page'] = None,
+) -> Tuple[Dict[str, Any], Optional['Page']]:
     """Download SE004 Kumulatif for multiple units.
     
     Args:
@@ -71,9 +72,10 @@ def run_multi_unit_download(
         ctx: Run context
         units: List of unit dicts with value, text, code
         period_ym: Period in YYYYMM format
+        page: Optional existing Playwright page instance
         
     Returns:
-        Dict with results summary
+        Tuple of (results dict, page instance) for session reuse
     """
     dataset_url = config.get(
         'datasets.se004_kumulatif.url',
@@ -93,20 +95,30 @@ def run_multi_unit_download(
     playwright = None
     browser = None
     context = None
+    page_from_browser = None  # Track if we opened the browser
+    should_close_browser = False  # Flag for cleanup
     
     try:
-        # Step 1: Open browser
+        # Step 1: Open browser OR use existing page
         print("\n" + "=" * 60)
         print(f"Multi-Unit Download: {len(units)} units")
         print(f"Period: {month_name} {year} ({period_ym})")
         print("=" * 60)
         
-        playwright, browser, context, page = open_browser(ctx, config)
-        print("Browser opened, starting authentication...")
-        
-        # Step 2: Login
-        login_apkt(page, ctx, config)
-        print("✓ Authentication successful\n")
+        if page is None:
+            # New session: open browser
+            playwright, browser, context, page = open_browser(ctx, config)
+            page_from_browser = page
+            should_close_browser = True  # We opened it, so we should close it
+            print("Browser opened, starting authentication...")
+            
+            # Step 2: Login
+            login_apkt(page, ctx, config)
+            print("✓ Authentication successful\n")
+        else:
+            # Reuse existing session
+            print("Using existing browser session...\n")
+            should_close_browser = False  # Don't close external browser
         
         # Step 3: Navigate to APKT-SS
         print("Navigating to APKT-SS...")
@@ -270,7 +282,7 @@ def run_multi_unit_download(
             
             logger.info(f"Manifest saved: {manifest_path}")
         
-        return results
+        return results, page
         
     except Exception as e:
         print(f"\n✗ Fatal error: {e}")
@@ -278,10 +290,11 @@ def run_multi_unit_download(
             "unit": "GLOBAL",
             "error": str(e),
         })
-        return results
+        return results, page
         
     finally:
-        if playwright or browser or context:
+        # Only close browser if we opened it in this function
+        if should_close_browser and (playwright or browser or context):
             close_browser(playwright, browser, context)
 
 
