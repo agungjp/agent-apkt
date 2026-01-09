@@ -2,13 +2,71 @@
 
 import time
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
-from playwright.sync_api import Page, Download
+from playwright.sync_api import Page, Download, TimeoutError as PlaywrightTimeout
 
-from ..errors import ApktDownloadError, BrowserError
+from ..errors import ApktDownloadError, BrowserError, NoDataFoundError
 from ..logging_ import get_logger
 from ..workspace import RunContext
+
+
+def _check_and_dismiss_popup(page: Page) -> Tuple[bool, bool]:
+    """Check and dismiss any popup/modal that blocks download.
+    
+    Handles "Data tidak ditemukan" popup and similar SweetAlert2 modals.
+    
+    Returns:
+        Tuple of (popup_found, is_no_data_error)
+        - popup_found: True if popup was found and dismissed
+        - is_no_data_error: True if it was "Data tidak ditemukan" popup
+    """
+    logger = get_logger()
+    
+    # Check for "Data tidak ditemukan" popup text first
+    is_no_data = False
+    try:
+        popup_text_loc = page.locator("text='Data tidak ditemukan'")
+        if popup_text_loc.is_visible(timeout=500):
+            logger.warning("📢 Popup: 'Data tidak ditemukan' - no data available for this filter")
+            is_no_data = True
+    except:
+        pass
+    
+    # SweetAlert2 and common modal selectors - very specific to avoid false positives
+    # The popup has a yellow "Ok" button
+    popup_selectors = [
+        # SweetAlert2 specific selectors
+        ".swal2-confirm",
+        "button.swal2-confirm", 
+        ".swal2-popup button",
+        # Generic modal with Ok button - but within a modal container
+        ".swal2-actions button:has-text('Ok')",
+        ".swal2-actions button:has-text('OK')",
+        # Fallback: Any modal overlay with Ok button
+        "[class*='swal'] button:has-text('Ok')",
+        # Very generic but scoped to modal
+        "div[role='dialog'] button:has-text('Ok')",
+        "div[role='dialog'] button:has-text('OK')",
+    ]
+    
+    for selector in popup_selectors:
+        try:
+            popup_btn = page.locator(selector).first
+            if popup_btn.is_visible(timeout=500):
+                text = ""
+                try:
+                    text = popup_btn.inner_text(timeout=300)
+                except:
+                    text = "button"
+                logger.info(f"✓ Popup dismissed: clicked '{text}' button")
+                popup_btn.click()
+                page.wait_for_timeout(500)
+                return (True, is_no_data)
+        except Exception:
+            continue
+    
+    return (False, is_no_data)
 
 
 def download_excel(
@@ -32,6 +90,7 @@ def download_excel(
         
     Raises:
         ApktDownloadError: If download fails after all attempts
+        NoDataFoundError: If no data available for filter
     """
     logger = get_logger()
     
@@ -44,12 +103,46 @@ def download_excel(
         logger.info(f"Download attempt {attempt}/{max_attempts} for {target_filename}")
         
         try:
-            # Use expect_download to capture the download
-            with page.expect_download(timeout=60000) as download_info:
-                # Trigger the download by clicking export button
-                click_export_fn()
+            # Setup download capture with reasonable timeout (60s for large files)
+            # and check for popup periodically during the wait
+            download = None
+            download_started = False
             
-            download: Download = download_info.value
+            def on_download(d):
+                nonlocal download, download_started
+                download = d
+                download_started = True
+            
+            # Register download event listener
+            page.on("download", on_download)
+            
+            try:
+                # Trigger the export click
+                click_export_fn()
+                
+                # Poll for download or popup (check every 2 seconds, max 60 seconds)
+                max_wait = 30  # 30 iterations * 2 seconds = 60 seconds max
+                for i in range(max_wait):
+                    # Check if download started
+                    if download_started:
+                        break
+                    
+                    # Check for popup every iteration
+                    popup_found, is_no_data = _check_and_dismiss_popup(page)
+                    if is_no_data:
+                        raise NoDataFoundError("No data found for this filter combination")
+                    if popup_found:
+                        raise ApktDownloadError("Download blocked by popup")
+                    
+                    # Wait 2 seconds before next check
+                    page.wait_for_timeout(2000)
+                
+                if not download_started:
+                    raise ApktDownloadError("Download timeout - no file received after 60s")
+                    
+            finally:
+                # Remove event listener
+                page.remove_listener("download", on_download)
             
             # Log download info
             logger.info(f"Download started: {download.suggested_filename}")
@@ -68,8 +161,17 @@ def download_excel(
             logger.info(f"Download successful: {target_path} ({file_size} bytes)")
             return target_path
             
+        except NoDataFoundError:
+            # No data found - propagate immediately without retry
+            raise
+            
         except Exception as e:
             logger.warning(f"Download attempt {attempt} failed: {e}")
+            
+            # Check for popup that might have appeared
+            popup_found, is_no_data = _check_and_dismiss_popup(page)
+            if is_no_data:
+                raise NoDataFoundError("No data found for this filter combination")
             
             # Take screenshot on failure
             screenshot_path = ctx.logs_dir / f"download_fail_attempt_{attempt}.png"

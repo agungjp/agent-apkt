@@ -119,10 +119,15 @@ def _set_period_filter(page: "Page", month_name: str, year: str) -> None:
     logger = get_logger()
     
     try:
+        # Extra wait for headless mode rendering
+        page.wait_for_timeout(2000)
+        
         # Set Month - using the same selector as kumulatif
         logger.info(f"🔍 Waiting for month selector to be visible...")
         month_select = page.locator("select[name='vc-component-4']").first
-        month_select.wait_for(state="visible", timeout=15000)
+        
+        # Wait with longer timeout for headless rendering
+        month_select.wait_for(state="visible", timeout=20000)
         logger.info(f"✓ Month selector visible, selecting: {month_name}")
         month_select.select_option(label=month_name)
         logger.info(f"✓ Month selected: {month_name}")
@@ -131,12 +136,12 @@ def _set_period_filter(page: "Page", month_name: str, year: str) -> None:
         # Set Year - using the same selector as kumulatif
         logger.info(f"🔍 Waiting for year selector to be visible...")
         year_select = page.locator("select[name='vc-component-6']").first
-        year_select.wait_for(state="visible", timeout=10000)
+        year_select.wait_for(state="visible", timeout=20000)  # Extended timeout for headless
         logger.info(f"✓ Year selector visible, selecting: {year}")
         year_select.select_option(label=year)
         logger.info(f"✓ Year selected: {year}")
         
-        page.wait_for_timeout(2000)  # Wait for data to reload
+        page.wait_for_timeout(3000)  # Wait for data to reload after period change
         
     except Exception as e:
         logger.error(f"Error setting period filter: {e}")
@@ -246,7 +251,14 @@ def run_se004_bulanan(
         print(f"Navigating to SE004 monthly report...")
         page.goto(dataset_url)
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(5000)  # Extra wait for headless rendering
+        
+        # Ensure page is truly ready - wait for key selectors to exist
+        try:
+            page.wait_for_function("document.querySelector('select[name=\"vc-component-4\"]') !== null", timeout=20000)
+            logger.info("✓ Page fully ready, selectors available")
+        except Exception as e:
+            logger.warning(f"⚠ Page readiness check timeout (may still work): {e}")
         
         # Verify page loaded with explicit check
         logger.info(f"🔍 Verifying SE004 page loaded...")

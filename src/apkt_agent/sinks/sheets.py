@@ -350,6 +350,146 @@ def upload_csv_to_worksheet(
         raise
 
 
+def upload_dataframe_to_worksheet(
+    df: "pd.DataFrame",
+    spreadsheet_id: str,
+    worksheet_name: str,
+    credentials_json_path: str,
+    mode: str = "replace",
+    period_column: Optional[str] = None,
+    period_value: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Upload DataFrame directly to Google Sheets worksheet.
+    
+    Args:
+        df: pandas DataFrame to upload
+        spreadsheet_id: Google Sheets spreadsheet ID
+        worksheet_name: Name of worksheet/tab to upload to
+        credentials_json_path: Path to Service Account JSON
+        mode: Upload mode - "replace", "append", or "smart"
+        period_column: Column name for period detection
+        period_value: Period value to match for smart replace
+        
+    Returns:
+        Dict with upload results: {success, row_count, col_count, worksheet_name}
+    """
+    logger = get_logger()
+    
+    # Normalize mode
+    if mode == 'update':
+        mode = 'smart'
+    
+    # Prepare DataFrame
+    df = df.fillna('')
+    row_count = len(df)
+    col_count = len(df.columns)
+    
+    logger.info(f"Uploading DataFrame: {row_count} rows x {col_count} columns")
+    
+    # Prepare values: header + data rows
+    header = df.columns.tolist()
+    data_rows = df.astype(str).values.tolist()
+    values = [header] + data_rows
+    
+    try:
+        # Build client and open spreadsheet
+        client = build_client(credentials_json_path)
+        spreadsheet = open_spreadsheet(client, spreadsheet_id)
+        
+        # Ensure worksheet exists with enough size
+        needed_rows = len(values) + 100
+        needed_cols = col_count + 5
+        worksheet = ensure_worksheet(spreadsheet, worksheet_name, rows=needed_rows, cols=needed_cols)
+        
+        # Resize worksheet if needed
+        if worksheet.row_count < len(values) or worksheet.col_count < col_count:
+            logger.info(f"Resizing worksheet to {len(values)} rows x {col_count} cols")
+            worksheet.resize(rows=len(values) + 100, cols=col_count + 5)
+        
+        # Handle smart mode with period-based replacement
+        if mode == "smart" and period_column and period_value:
+            logger.info(f"Smart mode: Replacing period '{period_value}' in column '{period_column}'")
+            existing_data = worksheet.get_all_values()
+            
+            if existing_data and len(existing_data) > 1:
+                existing_header = existing_data[0]
+                
+                if period_column in existing_header:
+                    period_col_idx = existing_header.index(period_column)
+                    
+                    # Find rows NOT matching the period (to keep)
+                    kept_rows = []
+                    for row in existing_data[1:]:
+                        if len(row) > period_col_idx:
+                            if row[period_col_idx].strip() != str(period_value).strip():
+                                kept_rows.append(row)
+                    
+                    logger.info(f"Keeping {len(kept_rows)} rows from other periods")
+                    
+                    # Combine: header + kept rows + new rows
+                    combined_values = [existing_header] + kept_rows + data_rows
+                    
+                    # Resize and upload
+                    new_size = len(combined_values) + 100
+                    if worksheet.row_count < new_size:
+                        worksheet.resize(rows=new_size, cols=max(worksheet.col_count, col_count + 5))
+                    
+                    worksheet.clear()
+                    
+                    # Upload in batches for large data
+                    batch_size = 10000
+                    for i in range(0, len(combined_values), batch_size):
+                        batch = combined_values[i:i+batch_size]
+                        start_row = i + 1
+                        worksheet.update(values=batch, range_name=f'A{start_row}', value_input_option='RAW')
+                    
+                    return {
+                        "success": True,
+                        "row_count": len(data_rows),
+                        "total_rows": len(combined_values) - 1,
+                        "col_count": col_count,
+                        "worksheet_name": worksheet_name,
+                    }
+                else:
+                    logger.warning(f"Period column '{period_column}' not found, falling back to append")
+                    mode = "append"
+            else:
+                mode = "replace"
+        
+        if mode == "replace":
+            worksheet.clear()
+            # Upload in batches
+            batch_size = 10000
+            for i in range(0, len(values), batch_size):
+                batch = values[i:i+batch_size]
+                start_row = i + 1
+                worksheet.update(values=batch, range_name=f'A{start_row}', value_input_option='RAW')
+        elif mode == "append":
+            existing_data = worksheet.get_all_values()
+            next_row = len(existing_data) + 1
+            
+            if worksheet.row_count < next_row + len(data_rows):
+                worksheet.resize(rows=next_row + len(data_rows) + 100)
+            
+            worksheet.update(values=data_rows, range_name=f'A{next_row}', value_input_option='RAW')
+        
+        logger.info(f"✓ Upload complete: {row_count} rows to '{worksheet_name}'")
+        
+        return {
+            "success": True,
+            "row_count": row_count,
+            "col_count": col_count,
+            "worksheet_name": worksheet_name,
+        }
+        
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+
 # Keep legacy class for backward compatibility
 class GoogleSheetsSink:
     """Writes parsed data to Google Sheets (legacy class)."""

@@ -12,8 +12,14 @@ from . import __version__
 from .config import Config, load_config
 from .logging_ import setup_logger, get_logger
 from .workspace import create_run
-from .datasets.se004.multi_download import load_units_selection, run_multi_unit_download
-from .datasets.se004.bulanan import run_se004_bulanan as run_se004_bulanan_extraction
+
+# Lazy imports to avoid slow pandas/openpyxl loading at startup
+# from .datasets.se004.multi_download import load_units_selection, run_multi_unit_download
+# from .datasets.se004.bulanan import run_se004_bulanan as run_se004_bulanan_extraction
+# from .datasets.se004.detail_gangguan import (
+#     run_se004_detail_gangguan as run_se004_detail_gangguan_extraction,
+#     load_units_selection as load_units_selection_detail,
+# )
 from .browser.auth import login_apkt
 
 
@@ -104,7 +110,8 @@ def print_menu(is_logged_in: bool = False, username: Optional[str] = None, confi
     print("-" * 60)
     print("\n  1. Laporan SAIDI SAIFI SE004 (Bulanan)")
     print("  2. Laporan SAIDI SAIFI Kumulatif SE004")
-    print("  3. Laporan Detail Kode Gangguan SE004 [stub]")
+    print("  3. Laporan Detail Kode Gangguan SE004")
+    print("  4. Laporan Koreksi dan Cleansing")
     print("\n  0. Keluar")
     print("\n" + "-" * 60)
 
@@ -176,7 +183,7 @@ def perform_login(config: Config) -> Tuple[Optional[Page], Optional[str]]:
         logger.error(f"Login failed: {e}")
         print(f"\n✗ Login gagal: {e}")
         # Close browser if login failed
-        if page:
+        if page and page.context and page.context.browser:
             try:
                 page.context.browser.close()
             except:
@@ -336,6 +343,9 @@ def run_se004_bulanan(config: Config, page: Optional[Page] = None) -> Optional[P
         return page
     
     try:
+        # Lazy import to avoid slow loading at startup
+        from .datasets.se004.multi_download import load_units_selection
+        
         units = load_units_selection(units_file)
     except Exception as e:
         print(f"\n✗ Error loading units: {e}")
@@ -373,6 +383,9 @@ def run_se004_bulanan(config: Config, page: Optional[Page] = None) -> Optional[P
     print("=" * 60)
     
     try:
+        # Lazy import to avoid slow pandas loading at startup
+        from .datasets.se004.bulanan import run_se004_bulanan as run_se004_bulanan_extraction
+        
         results, page = run_se004_bulanan_extraction(config, ctx, period_ym, units, page=page)
         
         # Step 6: Print final summary
@@ -465,6 +478,9 @@ def run_se004_kumulatif(config: Config, page: Optional[Page] = None) -> Optional
         return page
     
     try:
+        # Lazy import to avoid slow loading at startup  
+        from .datasets.se004.multi_download import load_units_selection
+        
         units = load_units_selection(units_file)
     except Exception as e:
         print(f"\n✗ Error loading units: {e}")
@@ -530,6 +546,9 @@ def run_se004_kumulatif(config: Config, page: Optional[Page] = None) -> Optional
     print("=" * 60)
     
     try:
+        # Lazy import to avoid slow pandas loading at startup
+        from .datasets.se004.multi_download import run_multi_unit_download
+        
         results, page = run_multi_unit_download(config, ctx, units, period_ym, page=page)
         
         # Step 9: Print final summary
@@ -589,6 +608,323 @@ def run_se004_kumulatif(config: Config, page: Optional[Page] = None) -> Optional
     return page
 
 
+def run_se004_detail_gangguan(config: Config, page: Optional[Page] = None) -> Optional[Page]:
+    """Run SE004 Detail Kode Gangguan extraction.
+    
+    Args:
+        config: Configuration object
+        page: Optional existing Playwright page instance
+        
+    Returns:
+        Playwright page instance (new or reused)
+    """
+    logger = get_logger()
+    logger.info("Selected: Laporan Detail Kode Gangguan SE004")
+    
+    print("\n" + "=" * 60)
+    print("  LAPORAN DETAIL KODE GANGGUAN SE004")
+    print("=" * 60)
+    
+    # Step 1: Get period
+    period_ym = get_period_input()
+    if not period_ym:
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    year = period_ym[:4]
+    month = period_ym[4:6]
+    month_name = BULAN_INDONESIA.get(month, month)
+    
+    # Step 2: Get browser mode from config (set during login)
+    headless = config.data.get('runtime', {}).get('headless', True)
+    
+    # Step 3: Confirm
+    print("\n" + "=" * 60)
+    print("KONFIRMASI")
+    print("=" * 60)
+    print(f"  Periode    : {month_name} {year}")
+    print(f"  Browser    : {'Tidak tampil (headless)' if headless else 'Tampil di layar'}")
+    print("=" * 60)
+    
+    confirm = input("\nLanjutkan download? (y/n): ").strip().lower()
+    if confirm != 'y':
+        print("\n✗ Download dibatalkan.")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    # Step 4: Load units
+    search_paths = [
+        Path("credentials/units_selection.yaml"),
+        Path("units_selection.yaml")
+    ]
+    
+    units_file = None
+    for path in search_paths:
+        if path.exists():
+            units_file = path
+            break
+    
+    if not units_file:
+        print(f"\n✗ File tidak ditemukan: units_selection.yaml")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    try:
+        # Lazy import for units loading (before confirmation flow)
+        from .datasets.se004.detail_gangguan import load_units_selection as load_units_selection_detail
+        
+        # Use load_units_selection_detail with exclude_regional=True for Menu 3
+        units = load_units_selection_detail(units_file, exclude_regional=True)
+    except Exception as e:
+        print(f"\n✗ Error loading units: {e}")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    if not units:
+        print("\n✗ Tidak ada unit yang dipilih di units_selection.yaml")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    # Step 5: Show selected units and kelompok info
+    kelompok_list = ["DISTRIBUSI", "TRANSMISI", "PEMBANGKIT"]
+    total_downloads = len(units) * len(kelompok_list)
+    
+    print("\n" + "-" * 60)
+    print("UNIT YANG AKAN DIDOWNLOAD")
+    print("-" * 60)
+    for i, unit in enumerate(units, 1):
+        print(f"  {i:2}. {unit['text']}")
+    print(f"\n  Total Unit   : {len(units)}")
+    print(f"  Kelompok     : {', '.join(kelompok_list)}")
+    print(f"  Total File   : {total_downloads} (unit × 3 kelompok)")
+    
+    # Step 6: Create run context
+    snapshot_date = datetime.now().strftime('%Y%m%d')
+    ctx = create_run("se004_detail_gangguan", period_ym, snapshot_date, config)
+    
+    # Re-setup logger
+    logger = setup_logger(ctx=ctx)
+    logger.info(f"Starting SE004 Detail Gangguan extraction")
+    logger.info(f"Period: {period_ym}, Units: {len(units)}, Headless: {headless}")
+    
+    # Step 7: Run extraction
+    print("\n" + "=" * 60)
+    print("MEMULAI PROSES EKSTRAKSI")
+    print("=" * 60)
+    print(f"  Run ID     : {ctx.run_id}")
+    print(f"  Direktori  : {ctx.run_dir}")
+    print("=" * 60)
+    
+    try:
+        # Lazy import here to avoid slow pandas loading at startup
+        from .datasets.se004.detail_gangguan import (
+            run_se004_detail_gangguan as run_se004_detail_gangguan_extraction,
+            load_units_selection as load_units_selection_detail,
+        )
+        
+        results, page = run_se004_detail_gangguan_extraction(config, ctx, period_ym, units, page=page)
+        
+        # Step 8: Print final summary (download only for now)
+        print("\n" + "=" * 60)
+        print("HASIL DOWNLOAD")
+        print("=" * 60)
+        print(f"\n  📊 RINGKASAN")
+        print(f"  " + "-" * 40)
+        print(f"  Total file      : {results.get('total', 0)} (unit × kelompok)")
+        print(f"  ✓ Berhasil      : {results.get('success', 0)}")
+        print(f"  ✗ Gagal         : {results.get('failed', 0)}")
+        
+        # Show failed items with errors
+        if results.get('errors'):
+            print(f"\n  ❌ DAFTAR ERROR: {len(results['errors'])} gagal")
+            for error in results['errors'][:5]:
+                err_unit = error.get('unit', 'Unknown')
+                err_kelompok = error.get('kelompok', '')
+                err_msg = error.get('error', '')[:40]
+                print(f"     - {err_unit} / {err_kelompok}: {err_msg}")
+            if len(results['errors']) > 5:
+                print(f"     ... dan {len(results['errors']) - 5} lainnya")
+        
+        print(f"\n  📁 LOKASI FILE")
+        print(f"  " + "-" * 40)
+        print(f"  Run directory   : {ctx.run_dir}")
+        print(f"  Excel files     : {ctx.excel_dir}")
+        
+        # Note: parsing and Google Sheets not yet implemented
+        print(f"\n  ℹ Parsing dan Google Sheets belum diimplementasi untuk Menu 3")
+        
+        print("\n" + "=" * 60)
+        logger.info(f"Download completed: {results['success']}/{results['total']} success")
+        
+    except Exception as e:
+        logger.error(f"Extraction failed: {e}")
+        print(f"\n✗ Ekstraksi gagal: {e}")
+    
+    input("\nTekan Enter untuk kembali ke menu...")
+    return page
+
+
+def run_koreksi_cleansing(config: Config, page: Optional[Page] = None) -> Optional[Page]:
+    """Run Koreksi Cleansing report extraction.
+    
+    Args:
+        config: Configuration object
+        page: Optional existing Playwright page instance
+        
+    Returns:
+        Playwright page instance (new or reused)
+    """
+    logger = get_logger()
+    logger.info("Selected: Laporan Koreksi dan Cleansing")
+    
+    print("\n" + "=" * 60)
+    print("  LAPORAN KOREKSI DAN CLEANSING")
+    print("=" * 60)
+    
+    # Step 1: Get period
+    period_ym = get_period_input()
+    if not period_ym:
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    year = period_ym[:4]
+    month = period_ym[4:6]
+    month_name = BULAN_INDONESIA.get(month, month)
+    
+    # Step 2: Get browser mode from config (set during login)
+    headless = config.data.get('runtime', {}).get('headless', True)
+    
+    # Step 3: Confirm
+    print("\n" + "=" * 60)
+    print("KONFIRMASI")
+    print("=" * 60)
+    print(f"  Periode    : {month_name} {year}")
+    print(f"  Browser    : {'Tidak tampil (headless)' if headless else 'Tampil di layar'}")
+    print("=" * 60)
+    
+    confirm = input("\nLanjutkan download? (y/n): ").strip().lower()
+    if confirm != 'y':
+        print("\n✗ Download dibatalkan.")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    # Step 4: Load units
+    search_paths = [
+        Path("credentials/units_selection.yaml"),
+        Path("units_selection.yaml")
+    ]
+    
+    units_file = None
+    for path in search_paths:
+        if path.exists():
+            units_file = path
+            break
+    
+    if not units_file:
+        print(f"\n✗ File tidak ditemukan: units_selection.yaml")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    try:
+        # Lazy import to avoid slow loading at startup
+        from .datasets.se004.koreksi_cleansing import load_units_selection
+        
+        units = load_units_selection(units_file)
+    except Exception as e:
+        print(f"\n✗ Error loading units: {e}")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    if not units:
+        print("\n✗ Tidak ada unit yang dipilih di units_selection.yaml")
+        input("\nTekan Enter untuk kembali ke menu...")
+        return page
+    
+    # Step 5: Show selected units
+    print("\n" + "-" * 60)
+    print("UNIT YANG AKAN DIDOWNLOAD")
+    print("-" * 60)
+    for i, unit in enumerate(units, 1):
+        print(f"  {i:2}. {unit['text']}")
+    print(f"\n  Total: {len(units)} unit")
+    
+    # Step 6: Create run context
+    snapshot_date = datetime.now().strftime('%Y%m%d')
+    ctx = create_run("koreksi_cleansing", period_ym, snapshot_date, config)
+    
+    # Re-setup logger
+    logger = setup_logger(ctx=ctx)
+    logger.info(f"Starting Koreksi Cleansing extraction")
+    logger.info(f"Period: {period_ym}, Units: {len(units)}, Headless: {headless}")
+    
+    # Step 7: Run extraction
+    print("\n" + "=" * 60)
+    print("MEMULAI PROSES EKSTRAKSI")
+    print("=" * 60)
+    print(f"  Run ID     : {ctx.run_id}")
+    print(f"  Direktori  : {ctx.run_dir}")
+    print("=" * 60)
+    
+    try:
+        # Lazy import to avoid slow pandas loading at startup
+        from .datasets.se004.koreksi_cleansing import run_koreksi_cleansing as run_kc_extraction
+        
+        results, page = run_kc_extraction(config, ctx, period_ym, units, page=page)
+        
+        # Step 8: Print final summary
+        print("\n" + "=" * 60)
+        print("HASIL EKSTRAKSI")
+        print("=" * 60)
+        print(f"\n  📊 RINGKASAN")
+        print(f"  " + "-" * 40)
+        print(f"  Total unit      : {results.get('total', 0)}")
+        print(f"  ✓ Berhasil      : {results.get('success', 0)}")
+        print(f"  ✗ Gagal         : {results.get('failed', 0)}")
+        
+        # Show failed units with errors
+        if results.get('errors'):
+            print(f"\n  ❌ DAFTAR ERROR: {len(results['errors'])} unit gagal")
+            for error in results['errors'][:5]:
+                print(f"     - {error}")
+            if len(results['errors']) > 5:
+                print(f"     ... dan {len(results['errors']) - 5} lainnya")
+        
+        if results.get('rows_parsed'):
+            print(f"\n  📄 HASIL PARSING")
+            print(f"  " + "-" * 40)
+            print(f"  Total baris     : {results['rows_parsed']:,}")
+            print(f"  File CSV        : {Path(results.get('parsed_csv_path', '')).name}")
+        
+        # Google Sheets upload status
+        if results.get('sheet_uploaded') is not None:
+            print(f"\n  📤 GOOGLE SHEETS")
+            print(f"  " + "-" * 40)
+            if results.get('sheet_uploaded'):
+                print(f"  Status          : ✓ Berhasil diupload")
+                print(f"  Worksheet       : {results.get('sheet_worksheet', '-')}")
+                print(f"  Baris diupload  : {results.get('sheet_row_count', 0):,}")
+            else:
+                print(f"  Status          : ✗ Gagal")
+                print(f"  Error           : {results.get('sheet_error', 'Unknown')[:50]}")
+                print(f"  (Lihat manifest.json untuk detail)")
+        
+        print(f"\n  📁 LOKASI FILE")
+        print(f"  " + "-" * 40)
+        print(f"  Run directory   : {ctx.run_dir}")
+        print(f"  Excel files     : {ctx.excel_dir}")
+        print(f"  Parsed CSV      : {ctx.parsed_dir}")
+        
+        print("\n" + "=" * 60)
+        logger.info(f"Extraction completed")
+        
+    except Exception as e:
+        logger.error(f"Extraction failed: {e}")
+        print(f"\n✗ Ekstraksi gagal: {e}")
+    
+    input("\nTekan Enter untuk kembali ke menu...")
+    return page
+
+
 def handle_menu_choice(choice: str, config: Config, page: Optional[Page] = None) -> Tuple[bool, Optional[Page]]:
     """Handle menu choice.
     
@@ -609,7 +945,11 @@ def handle_menu_choice(choice: str, config: Config, page: Optional[Page] = None)
         return True, page
     
     elif choice == "3":
-        run_stub("Laporan Detail Kode Gangguan SE004")
+        page = run_se004_detail_gangguan(config, page)
+        return True, page
+    
+    elif choice == "4":
+        page = run_koreksi_cleansing(config, page)
         return True, page
     
     elif choice == "0":
@@ -675,7 +1015,7 @@ def main() -> int:
                 
                 # Show menu with login status
                 print_menu(is_logged_in, username, config)
-                choice = input("Pilih menu (0-3): ").strip()
+                choice = input("Pilih menu (0-4): ").strip()
                 
                 continue_loop, page = handle_menu_choice(choice, config, page)
                 if not continue_loop:
@@ -685,7 +1025,7 @@ def main() -> int:
         
         finally:
             # Cleanup: close browser if it was opened
-            if page:
+            if page and page.context and page.context.browser:
                 try:
                     page.context.browser.close()
                     logger.info("Browser session closed")

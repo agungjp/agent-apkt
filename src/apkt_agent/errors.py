@@ -31,6 +31,11 @@ class ApktDownloadError(BrowserError):
     pass
 
 
+class NoDataFoundError(ApktDownloadError):
+    """No data found for the selected filters - should skip without retry."""
+    pass
+
+
 class DatasetError(APKTError):
     """Dataset-related error."""
     pass
