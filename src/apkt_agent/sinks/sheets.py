@@ -208,21 +208,31 @@ def upload_csv_to_worksheet(
             logger.info(f"Smart mode: Checking for existing period '{period_value}' in column '{period_column}'")
             existing_data = worksheet.get_all_values()
             
+            logger.info(f"Existing sheet data: {len(existing_data)} rows total")
+            
             if existing_data and len(existing_data) > 1:
                 # Find period column index
                 existing_header = existing_data[0]
+                logger.info(f"Header columns: {existing_header}")
+                
                 if period_column in existing_header:
                     period_col_idx = existing_header.index(period_column)
-                    logger.info(f"Found period column '{period_column}' at index {period_col_idx}")
+                    logger.info(f"✓ Found period column '{period_column}' at index {period_col_idx}")
                     
                     # Find and remove rows with matching period
                     matching_row_indices = []
                     for i, row in enumerate(existing_data[1:], start=1):  # Start from 1 (skip header)
-                        if len(row) > period_col_idx and row[period_col_idx].strip() == period_value.strip():
-                            matching_row_indices.append(i)
+                        if len(row) > period_col_idx:
+                            row_period = row[period_col_idx].strip()
+                            if row_period == period_value.strip():
+                                matching_row_indices.append(i)
+                                if len(matching_row_indices) <= 5:  # Log first 5 matches
+                                    logger.info(f"  → Row {i+1} matches period '{row_period}'")
+                    
+                    logger.info(f"Total matching rows: {len(matching_row_indices)}")
                     
                     if matching_row_indices:
-                        logger.info(f"Found {len(matching_row_indices)} rows with period '{period_value}': rows {matching_row_indices}")
+                        logger.info(f"✓ Found {len(matching_row_indices)} rows with period '{period_value}', replacing them...")
                         
                         # Build new data: keep header + rows that don't match + new data
                         kept_rows = []
@@ -232,7 +242,7 @@ def upload_csv_to_worksheet(
                         
                         # Combine: header + kept rows + new rows
                         combined_values = [existing_header] + kept_rows + data_rows
-                        logger.info(f"Combined data: {len(existing_header)+1} header + {len(kept_rows)} kept rows + {len(data_rows)} new rows = {len(combined_values)} total")
+                        logger.info(f"Combined data: 1 header + {len(kept_rows)} kept rows + {len(data_rows)} new rows = {len(combined_values)} total rows")
                         
                         # Clear and upload combined data
                         new_size = len(combined_values) + 100
@@ -243,9 +253,10 @@ def upload_csv_to_worksheet(
                         worksheet.clear()
                         logger.info(f"Uploading combined data: {len(combined_values)} rows total")
                         worksheet.update("A1", combined_values, value_input_option="RAW")
+                        logger.info(f"✓ Smart replace completed!")
                     else:
                         # No matching period found, append
-                        logger.info(f"No existing rows with period '{period_value}', appending new data...")
+                        logger.warning(f"⚠ No existing rows with period '{period_value}', appending new data...")
                         existing_data = worksheet.get_all_values()
                         next_row = len(existing_data) + 1
                         total_needed_rows = next_row + len(data_rows)
@@ -256,7 +267,9 @@ def upload_csv_to_worksheet(
                         logger.info(f"Appending {len(data_rows)} rows starting at row {next_row}")
                         worksheet.update(f"A{next_row}", data_rows, value_input_option="RAW")
                 else:
-                    logger.warning(f"Period column '{period_column}' not found in header: {existing_header}. Falling back to append mode")
+                    logger.warning(f"⚠ Period column '{period_column}' NOT found in header!")
+                    logger.warning(f"  Available columns: {existing_header}")
+                    logger.warning(f"  Falling back to append mode")
                     existing_data = worksheet.get_all_values()
                     next_row = len(existing_data) + 1
                     if worksheet.row_count < next_row + len(data_rows):
