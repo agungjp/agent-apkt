@@ -167,6 +167,22 @@ def perform_login(config: Config) -> Tuple[Optional[Page], Optional[str]]:
         
         print("\n✓ Login berhasil!")
         
+        # Navigate to APKT-SS subdomain after successful login
+        logger.info("🔍 Navigating to APKT-SS...")
+        page.wait_for_timeout(2000)
+        
+        try:
+            apktss_link = page.locator("p:has-text('APKT-SS')").first
+            if apktss_link.count() > 0:
+                logger.info("✓ Found APKT-SS link, clicking...")
+                apktss_link.click()
+                page.wait_for_url("**/new-apktss.pln.co.id/**", timeout=30000)
+                logger.info("✓ Successfully navigated to APKT-SS")
+            else:
+                logger.warning("⚠ APKT-SS link not found, continuing anyway")
+        except Exception as e:
+            logger.warning(f"⚠ Could not navigate to APKT-SS: {e}")
+        
         # Extract username from session or config
         username = "user"  # Default
         try:
