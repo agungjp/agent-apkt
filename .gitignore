@@ -137,6 +137,12 @@ workspace/
 RAHASIA_SETUP.zip
 *.zip
 
-# Keep credentials in repo for easy setup on other machines
-# Note: credentials.yaml contains username/password - change for your account
-# Note: config.yaml and service account JSON are included
+# Credentials - JANGAN PUSH KE GITHUB
+# Service account JSON (sensitive - will be deactivated by Google if pushed)
+credentials/*.json
+src/apkt_agent/secrets/*.json
+apkt-agent-*.json
+
+# Keep these in repo for easy setup (edit username/password)
+# credentials/config.yaml - OK to push
+# credentials/credentials.yaml - OK to push (template)
