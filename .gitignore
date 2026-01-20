@@ -132,11 +132,11 @@ dmypy.json
 
 # Project specific
 workspace/
-secrets/
-config.yaml
-credentials.yaml
 *.xlsx
 *.csv
-*-service-account.json
-apkt-agent-*.jsonRAHASIA_SETUP.zip
+RAHASIA_SETUP.zip
 *.zip
+
+# Keep credentials in repo for easy setup on other machines
+# Note: credentials.yaml contains username/password - change for your account
+# Note: config.yaml and service account JSON are included
